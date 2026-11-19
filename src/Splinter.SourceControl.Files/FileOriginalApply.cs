@@ -62,6 +62,20 @@ public sealed partial class FileWorkspaceProvider
         if (w.SourceKind == "none") PreflightOriginalRoot(w);
         using var baseline = ReadManifest(w, FilePath(Control(w), w.Results.Count == 0 ? "baseline.json" : "generation-basis.json"));
         using var result = w.Results.Count == 0 ? ReadManifest(w, FilePath(Control(w), "result.json")) : GenerationManifest(w);
+        var template = new OriginalApplyPlan(3, w.Id, w.RequestDigest!, w.BaseRevision!, w.ResultRevision!, w.ProjectPath,
+            "", [], [], "") { ResultId = w.Results.LastOrDefault()?.Id, PreviousApplyDigest = w.OriginalApplies.LastOrDefault()?.Plan.Digest,
+                LiveOriginalIdentity = w.LiveOriginal?.Identity };
+        return Task.FromResult(BuildPublicationPlan(w, baseline, result, publisher, template, w.AppliedPaths, w.AppliedPathNames,
+            selected, paths, names => AcquireOriginalSource(w, names, ct), diagnostics, ct));
+    }
+
+    private OriginalApplyPlan BuildPublicationPlan(WorkspaceRecord w, FileSourceManifest baseline, FileSourceManifest result,
+        IOriginalFilePublisher publisher, OriginalApplyPlan template, MetadataTreeRoot? appliedPaths, MetadataTreeRoot? appliedNames,
+        SelectionScope? selected, string[]? paths, Func<IEnumerable<string>, IOriginalSourceLease?>? acquireSource,
+        ResultGenerationDiagnostics? diagnostics, CancellationToken ct)
+    {
+        string targetPath = template.ProjectPath;
+        string targetName = template.PeerSource is null ? "original" : "destination workspace";
         using var work = new FileApplyIndex(FilePath(Control(w), "plan-work"));
         // A selected existing file has no descendants. Use the immutable catalogs
         // directly for that leaf, its parents and application-selected companions.
@@ -69,7 +83,7 @@ public sealed partial class FileWorkspaceProvider
         bool single = paths is { Length: 1 } && baseline.Catalog?.CaseSensitive == false && result.Catalog?.CaseSensitive == false;
         using var basisReader = single ? baseline.OpenReader(contentPins) : null;
         using var resultReader = single ? result.OpenReader(contentPins) : null;
-        using var history = single && w.AppliedPaths is not null ? new AppliedPathReader(Control(w), w, ct) : null;
+        using var history = single && appliedPaths is not null ? new AppliedPathReader(Control(w), appliedPaths, appliedNames, ct) : null;
         var before = work.Empty;
         var after = work.Empty;
         FileSourceEntry? Before(string path)
@@ -84,7 +98,7 @@ public sealed partial class FileWorkspaceProvider
         void IndexFullSources()
         {
             before = work.Build(baseline.EnumerateEntries(), ct);
-            before = work.ApplyVersions(before, EnumerateAppliedPaths(Control(w), w.AppliedPaths, w.AppliedPathNames), ct);
+            before = work.ApplyVersions(before, EnumerateAppliedPaths(Control(w), appliedPaths, appliedNames), ct);
             after = work.Build(result.EnumerateEntries(), ct);
         }
         if (!single) IndexFullSources();
@@ -135,14 +149,14 @@ public sealed partial class FileWorkspaceProvider
         var companions = work.BuildPaths(CheckedCompanions(), ct, coalesce: true);
         if (work.Paths(included).Any(path => !work.Contains(closed, path))) throw new WorkspaceException("ApplicationSelectionInvalid", "The application selection dropped a source path.");
         included = closed;
-        using var sourceLease = AcquireOriginalSource(w, work.Paths(included), ct);
-        var originalEntries = Scan(w.ProjectPath, w.ManagedPaths, ct, metadataOnly: true, mount: w.StorageMode == "project-snapshot" ? w.ProjectPath : null,
-            omitPlasticRoot: w.SourceKind == "plastic", omitGitRoot: w.SourceKind == "git");
+        using var sourceLease = acquireSource?.Invoke(work.Paths(included));
+        var originalEntries = Scan(targetPath, w.ManagedPaths, ct, metadataOnly: true, mount: template.PeerSource is not null || w.StorageMode == "project-snapshot" ? targetPath : null,
+            omitPlasticRoot: template.PeerSource is null && w.SourceKind == "plastic", omitGitRoot: w.SourceKind == "git");
         IEnumerable<FileSourceEntry> CheckedOriginalEntries()
         {
             foreach (var entry in originalEntries)
             {
-                if (w.SourceKind == "none") RequireNoApplyResources(entry);
+                if (w.SourceKind == "none" || template.PeerSource is not null) RequireNoApplyResources(entry);
                 yield return entry;
             }
         }
@@ -160,9 +174,9 @@ public sealed partial class FileWorkspaceProvider
         void Conflict(string message) => conflicts = work.AddText(conflicts, message);
         IOriginalFileObservationScope? observation;
         using (diagnostics?.Measure("plan.root-identity"))
-            observation = (publisher as IOriginalFileObservationProvider)?.OpenObservation(w.ProjectPath, ct);
+            observation = (publisher as IOriginalFileObservationProvider)?.OpenObservation(targetPath, ct);
         using var observationLifetime = observation;
-        string rootIdentity = observation?.ProjectIdentity ?? publisher.RootIdentity(w.ProjectPath);
+        string rootIdentity = observation?.ProjectIdentity ?? publisher.RootIdentity(targetPath);
         IEnumerable<OriginalApplyChange> Changes()
         {
         foreach (string path in work.Paths(included))
@@ -179,7 +193,7 @@ public sealed partial class FileWorkspaceProvider
             if (bv is not null && av is not null)
                 av = av with { Attributes = (av.Attributes & ~indexing) | (bv.Attributes & indexing) };
             if (b is not null && a is not null && b.UnixMode != a.UnixMode || b is null && a?.UnixMode is not (null or 0x1A4))
-            { Conflict(path + ": original file publication does not apply Git/Unix mode changes"); continue; }
+            { Conflict(path + ": " + targetName + " file publication does not apply Git/Unix mode changes"); continue; }
             if (bv?.SameContent(av) == true)
             {
                 if (bv.RelevantAttributes != av!.RelevantAttributes) Conflict(path + ": metadata-only change is unsupported");
@@ -191,7 +205,7 @@ public sealed partial class FileWorkspaceProvider
             { Conflict(path + ": unsupported type or metadata change"); continue; }
             OriginalFileObservation? observed;
             using (diagnostics?.Measure("plan.observe-target")) observed = observation is null
-                ? publisher.Observe(w.ProjectPath, path, ct) : observation.Observe(path, ct);
+                ? publisher.Observe(targetPath, path, ct) : observation.Observe(path, ct);
             // Bind both versions to the observed target policy, including an
             // explicit clear. Expected identity/attributes remain exact in the
             // fixed digest and conditional publisher guard.
@@ -205,24 +219,21 @@ public sealed partial class FileWorkspaceProvider
                 ? work.Contains(originalNames, path) && !work.ContainsExactPath(originalNames, path)
                 : work.Find(originalNames, path) is { } named && named.Path != path;
             if (casingChanged)
-                Conflict(path + ": original path casing changed");
+                Conflict(path + ": " + targetName + " path casing changed");
             bool sameBasis = bv is null ? observed is null : bv.SameContent(observed?.Version) && bv.RelevantAttributes == observed!.Version.RelevantAttributes;
             bool sameResult = av is null ? observed is null : av.SameContent(observed?.Version) && av.RelevantAttributes == observed!.Version.RelevantAttributes;
-            if (!sameBasis && !sameResult) Conflict(path + ": original and result diverged");
+            if (!sameBasis && !sameResult) Conflict(path + ": " + targetName + " and result diverged");
             if (bv?.Kind == "directory" && av is null && work.Contains(retainedParents, path))
                 Conflict(path + ": directory contains retained or foreign children");
             yield return new(path, bv, av, observed, sameResult);
         }
         }
-        var template = new OriginalApplyPlan(3, w.Id, w.RequestDigest!, w.BaseRevision!, w.ResultRevision!, w.ProjectPath,
-            rootIdentity, [], [], "") { SourceIdentity = sourceLease?.Identity,
-                ResultId = w.Results.LastOrDefault()?.Id, PreviousApplyDigest = w.OriginalApplies.LastOrDefault()?.Plan.Digest,
-                LiveOriginalIdentity = w.LiveOriginal?.Identity };
+        template = template with { ProjectIdentity = rootIdentity, SourceIdentity = sourceLease?.Identity ?? template.SourceIdentity };
         var plan = OriginalApplyPages.Create(template, OriginalApplyPages.OrderChanges(Changes(), Control(w), ct), Control(w), ct, contentPins, selected?.Paths);
         plan = OriginalApplyPages.WithConflicts(plan, work.Texts(conflicts), Control(w), contentPins);
         using (diagnostics?.Measure("plan.observation-boundary")) observation?.VerifyBoundary(ct);
         OriginalApplyPages.SavePlan(plan, Control(w));
-        return Task.FromResult(plan);
+        return plan;
     }
     private static string? Parent(string path) => path.LastIndexOf('/') is var slash && slash >= 0 ? path[..slash] : null;
     public async Task<IntegrationResult> ApplyOriginalAsync(WorkspaceRecord w, string intentKey, string expectedPlanDigest, CancellationToken ct = default, string[]? paths = null)
@@ -274,18 +285,8 @@ public sealed partial class FileWorkspaceProvider
         using var independentReader = proof is null ? ContentReader(w, Control(w), payloadManifest.ContentFiles) : null;
         var payloadReader = proof?.Content ?? independentReader;
         using (diagnostics?.Measure("apply.publish"))
-        publisher.Publish(w.OriginalApply, version =>
-        {
-            if (w.SourceKind == "git" && w.Results.Last().GitReference is not null)
-            {
-                var entry = payloadManifest!.FindPayload(version.Hash!, version.Length);
-                return GitSourceResult.OpenPayload(w.ProjectPath, w.Results.Last().GitReference!, entry.Path);
-            }
-            string path = FilePath(Control(w), "objects/" + version.Hash);
-            // The opened payload is independently hashed by the publisher before
-            // publication; do not hydrate the workspace or consult the source basis.
-            return (payloadReader?.Reader ?? Open)(path);
-        }, () =>
+        publisher.Publish(w.OriginalApply, version => OpenPublicationPayload(w, w.Results.LastOrDefault(), payloadManifest,
+            payloadReader, version), () =>
         {
             if (w.LiveOriginal is not null)
             {
@@ -304,6 +305,16 @@ public sealed partial class FileWorkspaceProvider
         if (!w.OriginalApply.Completed) throw new WorkspaceException("OriginalApplyPending", "Publication did not complete; preserve its intent and payloads.");
         CompleteApplyHistory(w);
         return new(w.ResultRevision!, false);
+    }
+    private Stream OpenPublicationPayload(WorkspaceRecord source, WorkspaceResultGeneration? generation,
+        FileSourceManifest manifest, ContentReadScope? content, OriginalFileVersion version)
+    {
+        if (generation?.GitReference is { } reference)
+        {
+            var entry = manifest.FindPayload(version.Hash!, version.Length);
+            return GitSourceResult.OpenPayload(source.ProjectPath, reference, entry.Path);
+        }
+        return (content?.Reader ?? Open)(FilePath(Control(source), "objects/" + version.Hash));
     }
     private void VerifyOriginalGeneration(WorkspaceRecord w, CancellationToken ct, GenerationReadScope? proof = null)
     {

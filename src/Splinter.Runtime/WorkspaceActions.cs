@@ -19,6 +19,11 @@ public static class WorkspaceActions
         var w = view.Workspace;
         if (view.MetadataMaintenance is { } maintenance)
             return new("workspace.maintain", new { id = w.Id, requestKey = maintenance.RequestKey, scope = maintenance.Scope, home });
+        if (w.PendingImport is { } pending && view.Recovery?.Disposition == "resume-import")
+            return new("workspace.import", new { id = w.Id, from = pending.Plan.PeerSource!.Id, result = pending.Plan.ResultId,
+                intentKey = pending.IntentKey, expectedPlanDigest = pending.Plan.Digest, home }, pending.Plan.LiveOriginalIdentity is not null);
+        if (view.ImportPlan is { } import)
+            return new("workspace.read", new { id = w.Id, collection = import.ConflictCount == 0 ? "plan" : "conflicts", planId = import.Digest, home });
         if (view.OriginalApplyPlan is { SelectionRoot: not null } selection && w.OriginalApply is not { Completed: false })
             return new("workspace.read", new { id = w.Id, collection = "selection", planId = selection.Digest, home });
         string command = accepted ? "workspace.status" : view.Command;

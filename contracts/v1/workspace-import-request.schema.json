@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:splinter:v1:workspace-import-request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "from", "result"],
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-f0-9]{24}$" }
+  },
+  "properties": {
+    "id": { "$ref": "#/$defs/id" },
+    "from": { "$ref": "#/$defs/id" },
+    "result": { "$ref": "#/$defs/id" },
+    "plan": { "type": "boolean" },
+    "intentKey": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "expectedPlanDigest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "paths": { "$ref": "urn:splinter:v1:workspace-integrate-request#/properties/paths" },
+    "liveTarget": { "type": "string", "minLength": 1 }
+  },
+  "oneOf": [
+    { "required": ["plan"], "properties": { "plan": { "const": true } }, "not": { "anyOf": [{ "required": ["intentKey"] }, { "required": ["expectedPlanDigest"] }] } },
+    { "required": ["intentKey", "expectedPlanDigest"], "properties": { "plan": { "const": false } } }
+  ]
+}

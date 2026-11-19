@@ -45,6 +45,8 @@ Splinter는 불변 프로젝트 기준본과 작업별 변경 byte range를 결�
 
 중간 checkpoint 뒤에도 같은 task/path/ID/basis/Library를 사용합니다. 수집은 변경 경계 안에서 accepted root·보호를 고정하고 내용 읽기/hash·독립 보존을 경계 밖에서 수행합니다. 같은 request는 최초 고정 결과를 반환하며 이후 편집은 live 작업에 남습니다.
 
+[작업공간 간 변경 반영](../workspace-import.md)에서는 받는 쪽 작업공간이 반영 계획, 조건부 파일 쓰기, 보낸 작업공간별 경로 이력을 관리합니다. 받는 쪽에서 체크포인트를 만들면 자체 편집과 가져온 변경이 함께 보존됩니다.
+
 미완료 capture/control/pin·live-repack은 별도 GC보다 먼저 같은 요청으로 복구합니다. 읽기 전용 metadata replay는 별도 소유 scratch 주소 공간을 사용하며 원본에 append하거나 전체 graph를 복사하지 않습니다. reader lease는 마지막 종료까지 source/basis/journal/scratch를 유지합니다. offline v3는 live root를 꾸미지 않고 변경 관측을 거부합니다.
 
 `OwnedContentStore`·`OwnedRangeContentStore`·`ResultFileContentStore`는 불변 whole/chunk/slice와 전체 의존성을 보존합니다. 수정 가능한 원본은 기준본 대체가 될 수 없습니다. 전체 수집/게시 검증·독립 내용 증명·과거 참조·같은 요청 adoption을 유지합니다.

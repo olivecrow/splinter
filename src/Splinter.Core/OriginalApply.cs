@@ -29,6 +29,7 @@ public sealed record OriginalApplyPlan([property: JsonRequired] int Version, [pr
     [property: JsonRequired] OriginalApplyChange[] Changes, [property: JsonRequired] string[] Conflicts, [property: JsonRequired] string Digest)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? SourceIdentity { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public PeerSource? PeerSource { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string[]? SelectedPaths { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? ResultId { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? PreviousApplyDigest { get; init; }
@@ -56,6 +57,7 @@ public sealed record OriginalApplyPlan([property: JsonRequired] int Version, [pr
             [nameof(RequestDigest)] = RequestDigest, [nameof(Basis)] = Basis, [nameof(Result)] = Result,
             [nameof(ProjectPath)] = ProjectPath, [nameof(ProjectIdentity)] = ProjectIdentity, [nameof(Changes)] = Changes, [nameof(Conflicts)] = Conflicts };
         if (SourceIdentity is not null) content.Add(nameof(SourceIdentity), SourceIdentity);
+        if (PeerSource is not null) content.Add(nameof(PeerSource), PeerSource);
         if (SelectionRoot is not null) content.Add(nameof(SelectedPaths), new { root = SelectionRoot.ContentHash, count = SelectionRoot.Count });
         else if (SelectedPaths is not null) content.Add(nameof(SelectedPaths), SelectedPaths);
         if (ResultId is not null) content.Add(nameof(ResultId), ResultId);
@@ -102,14 +104,33 @@ public sealed class OriginalApplyState
         bool plain = w.SourceKind == "none" && w.StorageMode == "project-snapshot";
         bool plastic = w.SourceKind == "plastic" && w.StorageMode == "plastic-snapshot" && w.ApplicationKind is "none" or "unity";
         bool git = w.SourceKind == "git" && w.StorageMode == "git-snapshot" && w.Results.Count > 0;
-        if (Plan is null || Plan.Version != (Plan.ChangesRoot is not null ? 3 : Plan.ResultId is null ? 1 : 2) || w.Purpose != "task" || !plain && !plastic && !git ||
+        if (Plan is null || Plan.PeerSource is not null || w.Purpose != "task" || !plain && !plastic && !git ||
             (plastic || git) && (Plan.SourceIdentity is not { Length: 71 } || !Plan.SourceIdentity.StartsWith("sha256:", StringComparison.Ordinal) ||
                 Plan.SourceIdentity[7..].Any(c => c is not (>= '0' and <= '9' or >= 'a' and <= 'f'))) ||
-            plain && Plan.SourceIdentity is not null ||
+            plain && Plan.SourceIdentity is not null || Plan.ProjectPath != w.ProjectPath ||
+            (Plan.ResultId is null ? Plan.Result != w.ResultRevision : !w.Results.Any(r => r.Id == Plan.ResultId && r.Revision == Plan.Result)))
+            throw new WorkspaceException("OriginalApplyStateInvalid", "The publication differs from the original project or its result.");
+        RequireProgress(w);
+    }
+    public void RequireImportMatch(WorkspaceRecord target)
+    {
+        static bool Id(string? value) => value is { Length: 24 } && value.All(char.IsAsciiHexDigitLower);
+        static bool Digest(string? value) => value is { Length: 71 } && value.StartsWith("sha256:", StringComparison.Ordinal) &&
+            !value.AsSpan(7).ContainsAnyExcept("0123456789abcdef");
+        if (Plan?.PeerSource is not { } source || !Id(source.Id) || !Id(source.RequestDigest) || source.Id == target.Id ||
+            !Id(Plan.ResultId) || string.IsNullOrWhiteSpace(Plan.Result) || Plan.ProjectPath != target.Path ||
+            Plan.ChangesRoot is null || !WorkspaceStorage.HasRangeJournal(target.StorageMode) ||
+            (target.SourceKind == "git" ? !Digest(Plan.SourceIdentity) : Plan.SourceIdentity is not null) ||
+            Plan.LiveOriginalIdentity is not null && (target.ApplicationKind != "unity" || !Digest(Plan.LiveOriginalIdentity)))
+            throw new WorkspaceException("WorkspaceImportStateInvalid", "Preserve the import with a mismatched source, target or result.");
+        RequireProgress(target);
+    }
+    private void RequireProgress(WorkspaceRecord w)
+    {
+        if (Plan.Version != (Plan.ChangesRoot is not null ? 3 : Plan.ResultId is null ? 1 : 2) ||
             (Plan.SelectionRoot is null ? Plan.SelectedPaths is { } selected && !ValidSelection(selected) :
                 Plan.ChangesRoot is null || Plan.SelectionRoot.Count == 0 || Plan.SelectedPaths is null || Plan.SelectedPaths.Length > 100 || Plan.SelectedPaths.Any(path => !ValidSelectionPath(path))) ||
             Plan.OwnerId != w.Id || Plan.RequestDigest != w.RequestDigest || Plan.Basis != w.BaseRevision ||
-            (Plan.ResultId is null ? Plan.Result != w.ResultRevision : !w.Results.Any(r => r.Id == Plan.ResultId && r.Revision == Plan.Result)) || Plan.ProjectPath != w.ProjectPath ||
             string.IsNullOrWhiteSpace(IntentKey) || IntentKey.Length > 128 || Plan.Changes is null ||
             Plan.Conflicts is null || Plan.ConflictCount != 0 ||
             string.IsNullOrWhiteSpace(Plan.ProjectIdentity) || Plan.Digest != Plan.ComputeDigest() || Steps is null ||

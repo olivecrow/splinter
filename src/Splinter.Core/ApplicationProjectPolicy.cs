@@ -20,10 +20,14 @@ public interface IApplicationProjectPolicy
     // owned mount identity lease; it is not permission for arbitrary reparse paths.
     IDisposable? AcquireOriginal(string project, bool reservePublication = false, string? verifiedManagedRoot = null);
     IDisposable? AcquireOriginal(WorkspaceRecord workspace, bool reservePublication = false, string? verifiedManagedRoot = null)
+        => AcquirePublication(workspace.ProjectPath, workspace.Results.LastOrDefault()?.Id, workspace.LiveOriginal,
+            reservePublication, verifiedManagedRoot);
+    IDisposable? AcquirePublication(string project, string? resultId, LiveOriginalEditorPermit? permit,
+        bool reservePublication, string? verifiedManagedRoot)
     {
-        if (workspace.LiveOriginal is not null)
+        if (permit is not null)
             throw new WorkspaceException("LiveOriginalUnsupported", "The application has no externally coordinated original-publication policy.");
-        return AcquireOriginal(workspace.ProjectPath, reservePublication, verifiedManagedRoot);
+        return AcquireOriginal(project, reservePublication, verifiedManagedRoot);
     }
     ApplicationSelection CloseSelection(IEnumerable<string> paths, Func<string, bool> existedBefore,
         Func<string, bool> existsAfter);

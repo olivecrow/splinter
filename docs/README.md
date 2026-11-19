@@ -22,7 +22,7 @@ Korean editions are available for the [main README](../README.ko.md) and [techni
 | Project bases | [Git](git-project-basis.md), [Plastic](plastic-project-basis.md), [managed ordinary project](plain-project-basis.md), [Library sharing](git-library-reference.md) |
 | Workspace lifecycle | [NTFS workspaces](ntfs-workspaces.md), [VCS-independent workspaces](vcs-independent-workspaces.md), [discard](workspace-discard.md) |
 | Current storage | [Scalable storage](scalable-storage.md), [bounded journal](bounded-journal.md), [raw writes and shared flush](raw-write-batching.md), [base reversion](journal-base-reversion.md), [latest-state journal](latest-only-journal.md) |
-| Results and publication | [Repeated original application](repeated-original-apply.md), [plain-folder publication](plain-folder-original-apply.md), [Plastic publication](plastic-original-apply.md), [Plastic boundary](plastic-compatibility.md) |
+| Results and publication | [Import into another workspace](workspace-import.md), [repeated original application](repeated-original-apply.md), [plain-folder publication](plain-folder-original-apply.md), [Plastic publication](plastic-original-apply.md), [Plastic boundary](plastic-compatibility.md) |
 | Recovery | [Journal](journal-recovery.md), [kernel](kernel-recovery.md), [product writes](product-write-recovery.md), [external tools](unity-mcp-response-recovery.md) |
 | Development views | [Workflow](view-workflow.md), [source views](source-view.md), [source verification](source-verification.md), [overlay](snapshot-overlay.md), [Unity preview checks](unity-render-qualification.md) |
 | Diagnostics | [Write profiling](write-profiling.md), [replay profiling](replay-profiling.md), [bounded journal probe](plans/structural-throughput-prototypes.md) |

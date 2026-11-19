@@ -11,7 +11,7 @@ Splinter gives each task its own writable project path. Tasks share a fixed proj
 A WinFsp mount presents the shared basis and the task's changes as one project tree. Splinter creates the workspace without a full project copy, a persistent cache of every file read, or a whole-file copy for a partial edit. Unity tasks can also share unchanged data from a prepared `Library` basis.
 
 1. **Create or resume.** Use a stable task key and work in the path Splinter returns. For Unity, start an Editor for that workspace when needed.
-2. **Checkpoint.** Preserve a fixed source result and keep editing in the same workspace. Use existing tools to compile, run Play Mode, test, and build.
+2. **Checkpoint and share.** Preserve a fixed source result and keep editing. Another workspace can [import the whole change or selected paths](docs/workspace-import.md). Use existing tools to compile, run Play Mode, test, and build.
 3. **Finish explicitly.** Apply a reviewed result to the original, release the workspace and retain its result, or discard the task. Application checks the current target for conflicts.
 
 ## Project sources

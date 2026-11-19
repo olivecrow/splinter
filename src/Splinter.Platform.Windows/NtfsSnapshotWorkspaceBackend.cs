@@ -12,8 +12,15 @@ using Splinter.SourceControl.Files;
 namespace Splinter.Platform.Windows;
 
 public sealed partial class NtfsSnapshotWorkspaceBackend(string runnerCache, IWorkspacePreparationObserver? preparationObserver = null,
-    IGeneratedDirectoryDependencies? generatedDirectories = null, IGeneratedDirectoryDependencies? projectDirectories = null) : ISnapshotWorkspaceBackend, ISourceGenerationBackend
+    IGeneratedDirectoryDependencies? generatedDirectories = null, IGeneratedDirectoryDependencies? projectDirectories = null) : ISnapshotWorkspaceBackend, ISourceGenerationBackend, IWorkspacePublicationTargetProvider
 {
+    public WorkspacePublicationTarget OpenPublicationTarget(WorkspaceRecord workspace)
+    {
+        IDisposable Pin(string path) => WorkspaceStore.SamePath(path, workspace.Path)
+            ? ManagedMountIdentity.Acquire(path, workspace.Id)
+            : throw new WorkspaceException("WorkspaceImportTargetMismatch", "Pin only the registered destination workspace.");
+        return new(new WindowsOriginalFilePublisher(managedRoot: Pin, allowGitAdministration: workspace.SourceKind == "git"), Pin(workspace.Path));
+    }
     private IGeneratedDirectoryDependencies Dependencies(WorkspaceRecord w) =>
         (w.StorageMode == "project-snapshot" ? projectDirectories : generatedDirectories) ?? throw new WorkspaceException("GeneratedBasisUnsupported", "Compose the exact basis dependency manager.");
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);

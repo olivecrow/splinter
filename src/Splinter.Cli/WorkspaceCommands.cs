@@ -119,6 +119,28 @@ internal static class WorkspaceCommands
             respond(Result(command, view, false, Home(parse)));
         });
         Bind(workspace, "checkpoint", "--message", (runtime, id, extra) => runtime.CheckpointAsync(id, extra!, ct));
+        var import = new Command("import", contracts.Find("workspace.import")!.Description);
+        var destination = new Option<string>("--id") { Required = true, Description = "Destination workspace ID." };
+        var from = new Option<string>("--from") { Required = true, Description = "Source workspace ID." };
+        var result = new Option<string>("--result") { Required = true, Description = "Fixed checkpoint from the source workspace." };
+        var review = new Option<bool>("--plan");
+        var importKey = new Option<string>("--intent-key");
+        var importDigest = new Option<string>("--expected-plan-digest");
+        var selected = new Option<string[]>("--path") { Description = "Select a file or directory. Repeat to select more paths.", AllowMultipleArgumentsPerToken = false };
+        var liveTarget = new Option<string>("--live-target") { Description = "Cooperation receipt for the destination's running Editor." };
+        foreach (Option option in new Option[] { destination, from, result, review, importKey, importDigest, selected, liveTarget }) import.Options.Add(option);
+        workspace.Subcommands.Add(import);
+        import.SetAction(async parse =>
+        {
+            const string command = "workspace.import"; select(command);
+            var paths = parse.GetValue(selected);
+            var request = new WorkspaceImportRequest(parse.GetValue(destination)!, parse.GetValue(from)!, parse.GetValue(result)!,
+                parse.GetValue(review), parse.GetValue(importKey), parse.GetValue(importDigest), paths is { Length: > 0 } ? paths : null);
+            string? permit = parse.GetValue(liveTarget);
+            if (!Validate(command, new { request.Id, request.From, request.Result, request.Plan, request.IntentKey, request.ExpectedPlanDigest, request.Paths, liveTarget = permit })) return;
+            var view = await Runtime(parse).ImportAsync(request, ReadPermit(permit), ct);
+            respond(Result(command, view, false, Home(parse)));
+        });
         var integrate = new Command("integrate", contracts.Find("workspace.integrate")!.Description);
         var integrateId = new Option<string>("--id") { Required = true };
         var integrateTarget = new Option<string>("--target"); var planOnly = new Option<bool>("--plan");
@@ -144,17 +166,7 @@ internal static class WorkspaceCommands
             {
                 if (resultId is null || !plan && (intent is null || digest is null))
                     throw new WorkspaceException("OriginalApplyRequestInvalid", "Use --target original --plan, then the explicit intent key and exact returned plan digest.");
-                LiveOriginalEditorPermit? permit = null;
-                if (permitPath is not null)
-                {
-                    WorkspaceStore.EnsurePlainPath(permitPath);
-                    using var input = new FileStream(permitPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                    if (input.Length > 65536) throw new WorkspaceException("LiveOriginalPermitInvalid", "The external cooperation receipt exceeds its bound.");
-                    using var document = JsonDocument.Parse(input);
-                    if (!contracts.Validate("urn:splinter:v1:live-original-editor-permit", document.RootElement).IsValid)
-                        throw new WorkspaceException("LiveOriginalPermitInvalid", "The external cooperation receipt does not match the current schema.");
-                    permit = document.RootElement.Deserialize<LiveOriginalEditorPermit>(ApiJson.Options) ?? throw new WorkspaceException("LiveOriginalPermitInvalid", "Missing external cooperation receipt.");
-                }
+                var permit = ReadPermit(permitPath);
                 view = plan ? await runtime.PlanOriginalAsync(id, resultId, permit, ct, paths)
                     : await runtime.ApplyOriginalAsync(id, resultId, intent!, digest!, permit, ct, paths);
             }
@@ -169,6 +181,17 @@ internal static class WorkspaceCommands
             respond(Result(command, view, false, Home(parse)));
         });
         Bind(workspace, "release", null, (runtime, id, _) => runtime.ReleaseAsync(id, ct));
+        LiveOriginalEditorPermit? ReadPermit(string? path)
+        {
+            if (path is null) return null;
+            WorkspaceStore.EnsurePlainPath(path);
+            using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (input.Length > 65536) throw new WorkspaceException("LiveOriginalPermitInvalid", "The external cooperation receipt exceeds its bound.");
+            using var document = JsonDocument.Parse(input);
+            if (!contracts.Validate("urn:splinter:v1:live-original-editor-permit", document.RootElement).IsValid)
+                throw new WorkspaceException("LiveOriginalPermitInvalid", "The external cooperation receipt does not match the current schema.");
+            return document.RootElement.Deserialize<LiveOriginalEditorPermit>(ApiJson.Options) ?? throw new WorkspaceException("LiveOriginalPermitInvalid", "Missing external cooperation receipt.");
+        }
         var discardCommand = new Command("discard", contracts.Find("workspace.discard")!.Description);
         var discardId = new Option<string>("--id") { Required = true };
         var intentKey = new Option<string>("--intent-key") { Required = true, Description = "Explicit, stable discard request key. Reuse it to resume." };
@@ -277,7 +300,7 @@ internal static class WorkspaceCommands
                 view.Application.Running, view.Application.Ready, view.Application.Phase,
                 processId = view.Application.Lease?.ProcessId, startTimeUtcTicks = view.Application.Lease?.StartTimeUtcTicks, view.Application.Resources
             },
-            view.ControlPath, nextCommand, view.Recovery, view.SourceVerification, view.OriginalApplyPlan, view.ResultGeneration, view.OriginalApplyReceipt, view.MetadataMaintenance,
+            view.ControlPath, nextCommand, view.Recovery, view.SourceVerification, view.OriginalApplyPlan, view.ResultGeneration, view.OriginalApplyReceipt, view.ImportPlan, view.ImportReceipt, view.MetadataMaintenance,
             isolation = "private-project-and-library; shared user preferences and external services are not sandboxed"
         };
         var response = ApiResponse.Success(command, data);
@@ -296,6 +319,7 @@ internal static class WorkspaceCommands
         record.RequestDigest, record.Snapshot, record.Discard, record.ResultStorage, record.OriginalApply,
         resultCount = record.Results.Count, latestResult = record.Results.LastOrDefault(), record.ResultHistory, record.CaptureIntent,
         originalApplyCount = record.OriginalApplies.Count, record.OriginalApplyHistory, record.AppliedPaths, record.AppliedPathNames,
+        record.PendingImport, record.ImportHistory,
         processId = record.Application?.ProcessId,
         record.ResultRevision, record.IntegratedRevision, record.LastError
     };

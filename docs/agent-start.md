@@ -79,6 +79,7 @@ When an Editor using external tools exits, the agent checks remaining target con
 | Continue later | Keep the same workspace. If needed, normally stop only the Editor with `unity stop --id <id> --home <home>`. |
 | Preserve results and reclaim resources | Needed external validation → `workspace checkpoint --id <id> --request-key <capture-key> --message <description> --release --home <home>` for a range-journal workspace. This explicitly authorizes preservation and reclamation together; original integration is optional. Separate checkpoint and release remain available. |
 | Apply and continue the same task | External save → checkpoint with a stable request key → `workspace integrate --target original --result <id>` plan/intent/digest and exact live-original cooperation → safe refresh/reload and loaded-state checks → continue. |
+| Bring a dependency from A into B | Checkpoint A. Review and apply the fixed result with `workspace import --id <B> --from <A> --result <id>`. [Full and selected imports](workspace-import.md) |
 | Final original application and reclamation | External save → normal stop of only this task → same capture/publication engine → explicit release. Original/peers remain running. Explicit Git branch merge is a separate clean-target operation; no push/deployment. |
 | Discard failed/uncommitted work | `workspace discard --id <id> --intent-key <fixed intent> --expected-request-digest <saved digest> --home <home>`. Successful validation/checkpoint is unnecessary; use the exact target and existing discard authorization. |
 

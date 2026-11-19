@@ -8,6 +8,7 @@ public sealed partial class WorkspaceCoordinator
     {
         using var gate = await store.LockAsync(id, ct);
         var w = store.Get(id); RequireNotDiscarding(w); w.OriginalApply?.RequireReclaimable(w);
+        RequireImportComplete(w);
         RequireCaptureRequest(message, requestKey);
         var previous = w.Results.Find(requestKey, r => r.RequestKey);
         if (previous is not null && previous.Message != message)

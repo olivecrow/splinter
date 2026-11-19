@@ -97,6 +97,7 @@ public sealed record SnapshotRecoveryDecision(string Disposition, string ReasonC
                 : new("preserve", "SnapshotMissing", "workspace.status");
         if (!state.Attached || observation is not { Mounted: true, ProviderAlive: true })
             return new("resume-ensure", observation?.FailureCode ?? "SnapshotNotReady", "workspace.ensure");
+        if (workspace.PendingImport is not null) return new("resume-import", "WorkspaceImportPending", "workspace.import");
         return new("ready", "WorkspaceReady", "workspace.status");
     }
 }

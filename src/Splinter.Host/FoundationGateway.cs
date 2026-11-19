@@ -111,7 +111,7 @@ public sealed class FoundationGateway(
             requestSchema = "urn:splinter:v1:overlay-serve-request",
             observationSchema = "urn:splinter:v1:overlay-observation",
             entrypoints = new[] { "workspace ensure --storage git-snapshot|plastic-snapshot|project-snapshot", "workspace list", "workspace status", "workspace compact",
-                "unity start", "unity stop", "workspace checkpoint", "workspace integrate", "workspace release", "workspace read", "workspace maintain --id <id> --request-key <key> --scope workspace|shared|content|ranges|all" },
+                "unity start", "unity stop", "workspace checkpoint", "workspace import", "workspace integrate", "workspace release", "workspace read", "workspace maintain --id <id> --request-key <key> --scope workspace|shared|content|ranges|all" },
             qualification = "docs/verification/README.md owns the current candidate; SCAL-01-08 qualification is in progress. Historical RI/MX/GCO/provider evidence is input-and-version-specific; no inherited large-project, other-Unity/OS/application or power-loss qualification."
         }
     });

@@ -354,6 +354,7 @@ public sealed partial class WorkspaceCoordinator
         RequireMetadataMaintenanceComplete(w);
         if (w.CaptureIntent is not null) throw new WorkspaceException("SourceCapturePending", "Complete the exact frozen capture before compacting its backing files.");
         RequireNotDiscarding(w);
+        RequireImportComplete(w);
         w.OriginalApply?.RequireReclaimable(w);
         if (!WorkspaceStorage.HasRangeJournal(w.StorageMode))
             throw new WorkspaceException("CompactionUnsupported", "Only an NTFS snapshot workspace has a range journal.");

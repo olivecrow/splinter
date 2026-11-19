@@ -2,6 +2,15 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "peerSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "requestDigest"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-f0-9]{24}$" },
+        "requestDigest": { "type": "string", "pattern": "^[a-f0-9]{24}$" }
+      }
+    },
     "sourceIdentity": {
       "type": "string",
       "pattern": "^sha256:[a-f0-9]{64}$"

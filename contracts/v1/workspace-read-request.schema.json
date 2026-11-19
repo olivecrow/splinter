@@ -10,6 +10,7 @@
       "enum": [
         "results",
         "applies",
+        "imports",
         "plan",
         "files",
         "applied-paths",
@@ -60,6 +61,7 @@
         null,
         "workspace-history",
         "workspace-original",
+        "workspace-import",
         "workspace-applied",
         "workspace-results",
         "shared",

@@ -44,6 +44,8 @@ Request-local metadata/catalog readers and path proofs retain native fences, cur
 
 A continuing task retains its path, ID, immutable basis and Library across intermediate checkpoints. Capture freezes accepted source roots and protection under the mutation boundary, then reads/hashes and independently preserves content outside it. The same request returns its first fixed result; later task writes remain live.
 
+The receiving workspace owns the plan, conditional file publication and per-source path history for a [workspace import](workspace-import.md). A checkpoint in that workspace includes its local changes and imported content.
+
 Pending capture/control/pin and live-repack recovery run before independent GC. Frozen read-only metadata uses an independently owned scratch address domain; it does not append to the source or copy the whole graph. Active reader leases retain the source, basis, journal backing and scratch until closure. Offline v3 change observation refuses instead of inventing a live root.
 
 `OwnedContentStore`, `OwnedRangeContentStore` and `ResultFileContentStore` preserve immutable whole/chunk/slice data and complete dependencies. Mutable originals cannot substitute for a basis. Full capture/publication validation, independent content proof, historical references and same-request adoption remain required. [Repeated application](repeated-original-apply.md) owns result generations, per-path history and final closure.

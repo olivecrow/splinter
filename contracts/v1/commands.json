@@ -93,6 +93,16 @@
       "retry": "same-workspace-request-key-and-message; never recapture a later source for an existing request"
     },
     {
+      "id": "workspace.import",
+      "description": "Apply all or selected changes from another workspace's fixed checkpoint to this workspace.",
+      "cliUsage": "splinter workspace import --id <destination-id> --from <source-id> --result <result-id> [--plan | --intent-key <key> --expected-plan-digest <digest>] [--path <file-or-directory>] [--live-target <receipt.json>] [--home <home>]",
+      "inputTransport": "options",
+      "inputSchema": "urn:splinter:v1:workspace-import-request",
+      "outputSchema": "urn:splinter:v1:response",
+      "sideEffects": "records review metadata or conditionally publishes files and an import receipt in the destination workspace",
+      "retry": "resume the same source, destination, result, intent, digest, selection and Editor identity"
+    },
+    {
       "id": "workspace.integrate",
       "description": "Conditionally publish an exact source generation to the original without moving Git HEAD/index; explicit clean-target Git branch merge remains separate.",
       "cliUsage": "splinter workspace integrate --id <id> --target original --result <id> [--plan | --intent-key <key> --expected-plan-digest <digest>] [--path <path>] [--live-original <receipt.json>] [--home <home>]",

@@ -155,6 +155,7 @@ public sealed partial class FileWorkspaceProvider
         private readonly IJournalFilePins? pins;
         private readonly PagedMetadataStore.CatalogReadScope catalogs;
         private readonly FileSourceManifest baseline;
+        public FileSourceManifest Basis => baseline;
         public FileSourceManifest Manifest { get; }
         public ContentReadScope Content { get; }
 

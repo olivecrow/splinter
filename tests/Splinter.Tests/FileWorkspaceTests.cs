@@ -173,11 +173,17 @@ public sealed partial class FileWorkspaceTests
         public PlasticClient Plastic { get; }
         public FixtureRevisions Revisions { get; }
         private readonly IOriginalFilePublisher? publisher;
+        private readonly IApplicationWorkspaceProvider application;
+        private readonly ApplicationProjectPolicies? policies;
         private readonly string sourceKind;
-        public Fixture(IOriginalFilePublisher? publisher = null, string sourceKind = "none")
+        public Fixture(IOriginalFilePublisher? publisher = null, string sourceKind = "none",
+            IApplicationWorkspaceProvider? application = null, ApplicationProjectPolicies? policies = null)
         {
             Revisions = new(); Backend.Revisions = Revisions;
             this.publisher = publisher;
+            this.application = application ?? new NoApplication();
+            this.policies = policies;
+            Backend.Publisher = publisher;
             this.sourceKind = sourceKind;
             Project = Path.Combine(directory.Path, "source"); Store = new(Path.Combine(directory.Path, "home"));
             Plastic = new(Project);
@@ -189,12 +195,12 @@ public sealed partial class FileWorkspaceTests
         }
         public WorkspaceCoordinator New(IWorkspacePreparationObserver? observer = null)
         {
-            var files = new FileWorkspaceProvider(Store, publisher, projectAccess: new ProjectAccess(), preparationObserver: observer);
+            var files = new FileWorkspaceProvider(Store, publisher, projectAccess: new ProjectAccess(), preparationObserver: observer, applicationPolicies: policies);
             var sources = new SourceWorkspaceRouter(Git, files, new PlasticWorkspaceProvider(Store, Plastic, Revisions));
-            return new(Store, sources, new SelectedApplicationProvider(new NoApplication()),
+            return new(Store, sources, new SelectedApplicationProvider(application),
                 snapshots: Backend, discardProvider: new Discard(sources, Backend), preparationObserver: observer);
         }
-        public Task<WorkspaceView> Ensure(string key, CancellationToken ct) => New().EnsureAsync(Project, key, sourceKind == "plastic" ? "1@repo@server" : "snapshot", sourceKind == "plastic" ? "plastic-snapshot" : "project-snapshot", false, ct, sourceKind: sourceKind, applicationKind: "none", generatedDirectoryId: sourceKind == "none" ? new string('a', 24) : null);
+        public Task<WorkspaceView> Ensure(string key, CancellationToken ct, string applicationKind = "none") => New().EnsureAsync(Project, key, sourceKind == "plastic" ? "1@repo@server" : "snapshot", sourceKind == "plastic" ? "plastic-snapshot" : "project-snapshot", false, ct, sourceKind: sourceKind, applicationKind: applicationKind, generatedDirectoryId: sourceKind == "none" ? new string('a', 24) : null);
         public void Dispose() => directory.Dispose();
     }
     private sealed class ProjectAccess : IProjectSourceAccess

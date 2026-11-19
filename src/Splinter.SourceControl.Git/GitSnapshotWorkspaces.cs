@@ -207,7 +207,7 @@ public sealed partial class GitWorkspaceProvider
     }
     private static string ReceiptPath(string control) => Path.Combine(control, "git-overlay.json");
     private static string ResultReference(WorkspaceRecord w) => "refs/splinter/snapshot-results/" + w.Id;
-    private static async Task<OverlayGitReceipt> Receipt(WorkspaceRecord w, string control, CancellationToken ct, bool verify = true)
+    internal static async Task<OverlayGitReceipt> Receipt(WorkspaceRecord w, string control, CancellationToken ct, bool verify = true)
     {
         var r = await GitOverlayRegistration.ReadAsync(ReceiptPath(control), ct);
         if (r.OwnerId != w.Id || !SamePath(r.Path, w.Path) || !SamePath(r.Project, w.ProjectPath) || r.Branch != w.SourceReference || r.Revision != w.BaseRevision)

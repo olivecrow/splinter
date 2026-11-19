@@ -41,10 +41,12 @@ internal static class WorkspaceReadCommands
                     input.cursor, input.pageSize),
                 "applies" => ReadSequence(record.Id, "applies", Hash(record.OriginalApplyHistory), record.OriginalApplies.Count, record.OriginalApplies.Enumerate,
                     input.cursor, input.pageSize),
+                "imports" => ReadSequence(record.Id, "imports", Hash(record.ImportHistory), record.Imports.Count,
+                    start => record.Imports.Enumerate(start).Select(r => r.Publication), input.cursor, input.pageSize),
                 "plan" => ReadPlan(record, control, input.planId, input.cursor, input.pageSize),
                 "conflicts" => ReadPlan(record, control, input.planId, input.cursor, input.pageSize, conflicts: true),
                 "selection" => ReadSelection(record, control, input.planId, input.cursor, input.pageSize),
-                "preserved-scratch" => ReadScratch(record, control, input.cursor, input.pageSize, input.storeScope, home(parse), ct),
+                "preserved-scratch" => ReadScratch(record, control, input.cursor, input.pageSize, input.storeScope, input.requestKey, home(parse), ct),
                 "maintenance-residuals" => ReadMaintenance(record, control, input.requestKey, input.storeScope, input.cursor, input.pageSize),
                 "deferred-reclamation" => ReadDeferred(record, control, home(parse), input.storeScope, input.cursor, input.pageSize, ct, input.requestKey),
                 "files" => ReadFiles(record, control, input.result, input.cursor, input.pageSize),
@@ -70,7 +72,7 @@ internal static class WorkspaceReadCommands
             start => OriginalApplyPages.EnumerateConflicts(control, plan, start).Select(value => new { message = value }), cursor, size);
         return ReadSequence(workspace.Id, "plan", digest, plan.ChangeCount, start => Changes(plan, start), cursor, size);
     }
-    private static object ReadScratch(WorkspaceRecord workspace, string control, string? cursor, int size, string? scope, string home, CancellationToken ct)
+    private static object ReadScratch(WorkspaceRecord workspace, string control, string? cursor, int size, string? scope, string? requestKey, string home, CancellationToken ct)
     {
         MetadataCursor? decoded = null;
         if (cursor is not null)
@@ -93,8 +95,15 @@ internal static class WorkspaceReadCommands
             return new { root = "sha256:" + (rangePage.Root ?? new MetadataTreeRoot(1, "", null)).ContentHash, count = rangePage.Root?.Count ?? 0, rangePage.Entries,
                 nextCursor = rangePage.NextCursor is null ? null : Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(rangePage.NextCursor, ApiJson.Options)) };
         }
-        if (scope is not (null or "workspace-original")) throw new WorkspaceException("CursorInvalid", "Choose content, ranges or workspace-original for a preserved scratch query.");
-        if (workspace.OriginalApply is not { } apply) throw new WorkspaceException("OriginalApplyStateInvalid", "No publication owns a scratch inventory.");
+        OriginalApplyState? apply = scope switch
+        {
+            null or "workspace-original" => workspace.OriginalApply,
+            "workspace-import" when requestKey is null => throw new WorkspaceException("CursorInvalid", "Select the destination import intent with --request-key."),
+            "workspace-import" when workspace.PendingImport?.IntentKey == requestKey => workspace.PendingImport,
+            "workspace-import" => workspace.Imports.Find(requestKey!, entry => entry.Publication.IntentKey)?.Publication,
+            _ => throw new WorkspaceException("CursorInvalid", "Choose content, ranges, workspace-import or workspace-original for a preserved scratch query.")
+        };
+        if (apply is null) throw new WorkspaceException("OriginalApplyStateInvalid", "The selected publication has no scratch inventory.");
         var page = OriginalApplyPages.ReadPreservedScratchPage(control, apply, decoded, size);
         return new { root = "sha256:" + page.Root.ContentHash, count = page.Root.Count, page.Entries,
             nextCursor = page.NextCursor is null ? null : Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(page.NextCursor, ApiJson.Options)) };

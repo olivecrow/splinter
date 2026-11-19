@@ -90,13 +90,13 @@ public sealed partial class FileWorkspaceProvider
         private readonly PagedMetadataStore pages;
         private readonly IReadOnlyMetadataTree paths;
         private readonly PagedPathInterner names;
-        internal AppliedPathReader(string control, WorkspaceRecord w, CancellationToken ct)
+        internal AppliedPathReader(string control, MetadataTreeRoot root, MetadataTreeRoot? pathNames, CancellationToken ct)
         {
             pages = new(FilePath(control, "applied-pages"));
             try
             {
-                paths = pages.Open(w.AppliedPaths!);
-                names = new(pages, w.AppliedPathNames ?? throw Error("The applied path spelling root is missing."));
+                paths = pages.Open(root);
+                names = new(pages, pathNames ?? throw Error("The applied path spelling root is missing."));
                 foreach (var row in paths.Enumerate())
                 {
                     ct.ThrowIfCancellationRequested();
@@ -112,10 +112,14 @@ public sealed partial class FileWorkspaceProvider
         public void Dispose() => pages.Dispose();
     }
     private void SaveAppliedPaths(WorkspaceRecord w)
+        => (w.AppliedPaths, w.AppliedPathNames) = SaveAppliedPaths(Control(w), w.OriginalApply!, w.AppliedPaths, w.AppliedPathNames);
+
+    private (MetadataTreeRoot, MetadataTreeRoot) SaveAppliedPaths(string control, OriginalApplyState completed,
+        MetadataTreeRoot? previousPaths, MetadataTreeRoot? previousNames)
     {
-        var completed = w.OriginalApply!;
-        using var pages = new PagedMetadataStore(FilePath(Control(w), "applied-pages"), true, filePins: contentPins); var root = w.AppliedPaths ?? pages.Empty;
-        var names = new PagedPathInterner(pages, w.AppliedPathNames);
+        using var pages = new PagedMetadataStore(FilePath(control, "applied-pages"), true, filePins: contentPins);
+        var root = previousPaths ?? pages.Empty;
+        var names = new PagedPathInterner(pages, previousNames);
         foreach (var change in completed.Plan.EnumerateChanges())
         {
             byte[] data;
@@ -129,6 +133,6 @@ public sealed partial class FileWorkspaceProvider
             }
             root = pages.Set(root, PagedPathInterner.LookupIdentity(change.Path), data);
         }
-        pages.Flush(); w.AppliedPaths = root; w.AppliedPathNames = names.Root;
+        pages.Flush(); return (root, names.Root);
     }
 }

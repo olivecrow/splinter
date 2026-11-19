@@ -5,8 +5,11 @@ namespace Splinter.SourceControl.Files;
 // Selection is durable. An adapter failure is propagated, never reinterpreted
 // as a request for another source mode.
 public sealed class SourceWorkspaceRouter(ISourceWorkspaceProvider git, FileWorkspaceProvider files, ISourceWorkspaceProvider? plastic = null) :
-    ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider, IOriginalApplyProvider, ISnapshotCheckpointSourceProvider, ISourceInspectionProofProvider, IWorkspaceGenerationSource, IWorkspaceGenerationBranchSource, IRetainedResultMaintenance, IWorkspaceMetadataMaintenance
+    ISourceWorkspaceProvider, ISnapshotSourceWorkspaceProvider, ISourceDiscardProvider, IOriginalApplyProvider, IWorkspaceImportSource, ISnapshotCheckpointSourceProvider, ISourceInspectionProofProvider, IWorkspaceGenerationSource, IWorkspaceGenerationBranchSource, IRetainedResultMaintenance, IWorkspaceMetadataMaintenance
 {
+    public Task<OriginalApplyPlan> ImportAsync(WorkspaceRecord source, WorkspaceResultGeneration generation, WorkspaceRecord target,
+        IOriginalFilePublisher publisher, WorkspaceImportRequest request, LiveOriginalEditorPermit? liveTarget, CancellationToken ct)
+        => files.ImportAsync(source, generation, target, publisher, request, liveTarget, ct);
     public bool SupportsMetadataMaintenance => files.SupportsMetadataMaintenance;
     public Task<WorkspaceMaintenanceResult> MaintainMetadataAsync(WorkspaceRecord w, string control, string requestKey, string scope = "all", CancellationToken ct = default)
         => files.MaintainMetadataAsync(w, control, requestKey, scope, ct);

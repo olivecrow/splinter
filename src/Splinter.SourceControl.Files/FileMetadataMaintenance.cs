@@ -137,11 +137,14 @@ public sealed partial class FileWorkspaceProvider
             {
                 if (w.ResultHistory.Root is { } results) yield return results;
                 if (w.OriginalApplyHistory.Root is { } applies) yield return applies;
+                if (w.ImportHistory.Root is { } imports) yield return imports;
             }
             else if (stage.Scope == "workspace-original")
             {
                 if (w.OriginalApply is { } current) foreach (var root in MetadataMaintenance.Roots(current)) yield return root;
                 foreach (var apply in w.OriginalApplies) foreach (var root in MetadataMaintenance.Roots(apply)) yield return root;
+                if (w.PendingImport is { } pending) foreach (var root in MetadataMaintenance.Roots(pending)) yield return root;
+                foreach (var receipt in w.Imports) foreach (var root in MetadataMaintenance.Roots(receipt.Publication)) yield return root;
                 string plans = Path.Combine(control, "original-plans");
                 if (Directory.Exists(plans))
                     foreach (string path in Directory.EnumerateFiles(plans))
@@ -161,6 +164,7 @@ public sealed partial class FileWorkspaceProvider
             {
                 if (w.AppliedPaths is { } applied) yield return applied;
                 if (w.AppliedPathNames is { } names) yield return names;
+                foreach (var receipt in w.Imports) { yield return receipt.AppliedPaths; yield return receipt.AppliedPathNames; }
             }
             else if (stage.Scope == "workspace-results")
             {

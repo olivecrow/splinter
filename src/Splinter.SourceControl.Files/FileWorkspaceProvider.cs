@@ -14,7 +14,7 @@ public sealed partial class FileWorkspaceProvider(WorkspaceStore store, IOrigina
     IPlasticOriginalGuard? originalGuard = null, IProjectSourceAccess? projectAccess = null,
     ApplicationProjectPolicies? applicationPolicies = null, ISourceChangeProvider? sourceChanges = null,
     IWorkspacePreparationObserver? preparationObserver = null, IJournalFilePins? contentPins = null) : ISourceWorkspaceProvider,
-    ISnapshotSourceWorkspaceProvider, ISnapshotCheckpointSourceProvider, ISourceDiscardProvider, IOriginalApplyProvider, ISourceInspectionProofProvider, IWorkspaceGenerationSource, IRetainedResultMaintenance, IWorkspaceMetadataMaintenance
+    ISnapshotSourceWorkspaceProvider, ISnapshotCheckpointSourceProvider, ISourceDiscardProvider, IOriginalApplyProvider, IWorkspaceImportSource, ISourceInspectionProofProvider, IWorkspaceGenerationSource, IRetainedResultMaintenance, IWorkspaceMetadataMaintenance
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };

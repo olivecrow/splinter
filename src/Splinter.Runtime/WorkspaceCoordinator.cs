@@ -12,6 +12,8 @@ public sealed record WorkspaceView(WorkspaceRecord Workspace, SourceState? Sourc
     public OriginalApplyPlan? OriginalApplyPlan { get; init; }
     public WorkspaceResultGeneration? ResultGeneration { get; init; }
     public OriginalApplyState? OriginalApplyReceipt { get; init; }
+    public OriginalApplyPlan? ImportPlan { get; init; }
+    public OriginalApplyState? ImportReceipt { get; init; }
     public WorkspaceMaintenanceResult? MetadataMaintenance { get; init; }
 }
 
@@ -285,7 +287,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
     {
         using var gate = await store.LockAsync(id, ct);
         var record = store.Get(id);
-        RequireLive(record);
+        RequireLive(record, allowImport: true);
         await applications.StopAsync(record, store.ControlPath(id), ct);
         record.Phase = record.IntegratedRevision is not null ? "integrated" : record.ResultRevision is not null ? "collected" : "ready";
         store.Save(record, "editor-stopped");
@@ -296,6 +298,7 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
     {
         using var gate = await store.LockAsync(id, ct);
         var record = store.Get(id);
+        RequireImportComplete(record);
         if (record.CaptureIntent is not null) throw new WorkspaceException("SourceCapturePending", "Complete the exact frozen capture before releasing this workspace.");
         RequireNotDiscarding(record);
         record.OriginalApply?.RequireReclaimable(record);
@@ -382,9 +385,10 @@ public sealed partial class WorkspaceCoordinator(WorkspaceStore store, ISourceWo
                 new { operationError = (ex as WorkspaceException)?.Code ?? ex.GetType().Name, stateError.Details }, stateError.RecoveryActions);
         }
     }
-    private static void RequireLive(WorkspaceRecord record, bool allowOriginalApply = false)
+    private static void RequireLive(WorkspaceRecord record, bool allowOriginalApply = false, bool allowImport = false)
     {
         RequireNotDiscarding(record);
+        if (!allowImport) RequireImportComplete(record);
         if (!allowOriginalApply) record.OriginalApply?.RequireReclaimable(record);
         if (record.Phase == "released") throw new WorkspaceException("WorkspaceReleased", "This task is released. Use a new request key.");
         if (record.Snapshot?.Step.StartsWith("release-", StringComparison.Ordinal) == true)

@@ -78,6 +78,8 @@ public sealed partial class WorkspaceStore
             if (document.RootElement.ValueKind != JsonValueKind.Object) throw new WorkspaceException("StateCorrupt", "Preserve a malformed workspace record.");
             if (!JsonPropertyValidation.HasUniqueProperties(document.RootElement))
                 throw new WorkspaceException("StateCorrupt", "Preserve duplicated workspace identity or history properties.");
+            if (document.RootElement.TryGetProperty("importHistory", out _) != document.RootElement.TryGetProperty("pendingImport", out _))
+                throw new WorkspaceException("WorkspaceImportStateInvalid", "Preserve the incomplete incoming publication fields.");
             if (document.RootElement.TryGetProperty("storageMode", out var oldMode) && oldMode.ValueKind == JsonValueKind.String && oldMode.GetString() == "ntfs-snapshot")
                 throw new WorkspaceException("StorageModeRetired", "Preserve retired ntfs-snapshot/VSS state; no migration or reclamation is performed.");
             if (document.RootElement.TryGetProperty("version", out var version) && version.ValueKind == JsonValueKind.Number && version.TryGetInt32(out int recordedVersion) &&
@@ -139,6 +141,7 @@ public sealed partial class WorkspaceStore
             record.Snapshot?.Step.StartsWith("discard", StringComparison.Ordinal) == true)
             throw new WorkspaceException("DiscardIntentMismatch", "Preserve discard state: its durable intent is missing.");
         record.OriginalApply?.RequireMatch(record);
+        if (record.ImportHistory is not { Version: 1, Count: 0, Root: null } || record.PendingImport is not null) ValidateImports(record);
         if (record.Results.Count == 0 && record.SourceKind is "none" or "plastic" &&
             (record.Phase is "integrating" or "integrated" && record.OriginalApply is null ||
              record.IntegratedRevision is not null && (record.OriginalApply?.Completed != true || record.IntegratedRevision != record.ResultRevision)))
@@ -209,6 +212,31 @@ public sealed partial class WorkspaceStore
         catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException) { return false; }
     }
 
+    private static void ValidateImports(WorkspaceRecord record)
+    {
+        var lastImports = new Dictionary<PeerSource, string>();
+        foreach (var receipt in record.Imports)
+        {
+            if (receipt is not { Publication.Completed: true, AppliedPaths: not null, AppliedPathNames: not null })
+                throw new WorkspaceException("WorkspaceImportStateInvalid", "Preserve incomplete import history.");
+            var publication = receipt.Publication;
+            publication.RequireImportMatch(record);
+            var peer = publication.Plan.PeerSource!;
+            if (publication.Plan.PreviousApplyDigest != lastImports.GetValueOrDefault(peer))
+                throw new WorkspaceException("WorkspaceImportStateInvalid", "Preserve reordered import history.");
+            lastImports[peer] = publication.Plan.Digest;
+        }
+        if (record.PendingImport is { } pending)
+        {
+            pending.RequireImportMatch(record);
+            if (pending.Completed || record.CaptureIntent is not null || record.Discard is not null ||
+                record.OriginalApply is { Completed: false } || record.Snapshot is not { Step: "ready", Attached: true } ||
+                pending.Plan.PreviousApplyDigest != lastImports.GetValueOrDefault(pending.Plan.PeerSource!) ||
+                record.Imports.Find(pending.IntentKey, r => r.Publication.IntentKey) is not null)
+                throw new WorkspaceException("WorkspaceImportStateInvalid", "Preserve the inconsistent pending import.");
+        }
+    }
+
     public WorkspaceRecord Get(string id) => Find(id) ?? throw new WorkspaceException("WorkspaceNotFound", $"No workspace '{id}' in this state root.");
 
     public void Save(WorkspaceRecord workspace, string action)
@@ -272,7 +300,7 @@ public sealed partial class WorkspaceStore
 
     private void BindHistories(WorkspaceRecord workspace)
     {
-        if (workspace.ResultHistory is null || workspace.OriginalApplyHistory is null)
+        if (workspace.ResultHistory is null || workspace.OriginalApplyHistory is null || workspace.ImportHistory is null)
             throw new WorkspaceException("StateCorrupt", "Preserve missing immutable history roots.");
         string control = ControlPath(workspace.Id), directory = Path.Combine(control, "history-pages");
         workspace.Results.Bind(new WorkspaceHistoryStorage<WorkspaceResultGeneration>(directory,
@@ -281,6 +309,11 @@ public sealed partial class WorkspaceStore
             () => workspace.OriginalApplyHistory, value => workspace.OriginalApplyHistory = value, value => value.IntentKey,
             value => OriginalApplyPages.Bind(value, control, FilePins), FilePins));
         if (workspace.OriginalApply is not null) OriginalApplyPages.Bind(workspace.OriginalApply, control, FilePins);
+        workspace.Imports.Bind(new WorkspaceHistoryStorage<WorkspaceImportReceipt>(directory,
+            () => workspace.ImportHistory, value => workspace.ImportHistory = value, value => value.Publication.IntentKey,
+            value => OriginalApplyPages.Bind(value.Publication is { Plan: not null } publication ? publication :
+                throw new WorkspaceException("WorkspaceImportStateInvalid", "Preserve the missing import receipt or plan."), control, FilePins), FilePins));
+        if (workspace.PendingImport is not null) OriginalApplyPages.Bind(workspace.PendingImport, control, FilePins);
     }
 
     public IReadOnlyList<WorkspaceRecord> List(string? project = null) =>

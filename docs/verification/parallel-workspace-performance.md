@@ -1,5 +1,13 @@
 # Actual Unity parallel workspace timing
 
+## November 19 maze workflow
+
+On Unity 6000.6.8f1, a three-workspace replay reached a playable maze in **19m 50.94s**, down from **31m 52.81s**. The original was clean and all task resources were released in **20m 22.95s**, down from **32m 09.80s**. The historical pre-opened shared FIFO Editor reached those endpoints in 6m 44.87s and 7m 02.89s. The replay used the same 69 source files, 24,246 warm Library files, package versions and previously authored module bytes, delivered at their recorded draft times. It includes its controller interruption and recovery. The local comparison is under `artifacts/maze-20261119/workflow-comparison.md`.
+
+The first workspace launch moved from 221.84s to 73.15s and all three Editors reached verified readiness on their first launch. World applied 32.49s after its module passed, down from 868.87s. Actors applied while Presentation was still starting. All three results survived release. The restored native original loaded the combined game, followed a 121-position A* route through five encounters, recovered health and reached the exit. [Workflow guidance](../../skills/splinter/SKILL.md#schedule-independent-work-and-finish-ready-workspaces)
+
+A matched script edit took 19.75s to verify on native NTFS and 96.55s / 97.65s on repeated mounted runs. With two writers the figures were 26.54s / 25.72s on native NTFS and 121.19s / 136.50s on mounts. Read, write, flush and Unity timings are recorded per workspace. One interrupted provider sample from the full game is unavailable. All three replay workspace Editors reported a Windows access violation during shutdown even though their process groups emptied and their releases completed. The final native original closed normally. The originating native fault remains unresolved. [Timing diagnostics](../development-cli.md#unity-readiness-and-shutdown-timing)
+
 ## November 19 original publication and workspace reclamation
 
 On the matched warm URP project, checkpoint through a recompiled live original fell from **42.80s to 36.19s (15.4%)**. The first normal shutdown request through both released workspaces fell from **86.15s to 68.66s (20.3%)**. The control used separate `unity stop` commands before final preservation. The selected sequence starts `workspace checkpoint --release` on the dependent Editor, confirms its process group has exited and the owner still responds, then starts the owner's final command. Each command uses its own stable request key.

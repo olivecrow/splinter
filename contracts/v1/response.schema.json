@@ -391,7 +391,7 @@
       "if": {
         "properties": {
           "command": {
-            "const": "workspace.integrate"
+            "enum": ["workspace.integrate", "workspace.import"]
           },
           "status": {
             "enum": [
@@ -652,6 +652,7 @@
                 "enum": [
                   "results",
                   "applies",
+                  "imports",
                   "plan",
                   "files",
                   "applied-paths",
@@ -823,6 +824,7 @@
             "owned-original-project-lifecycle",
             "owned-task-discard",
             "owned-worktree-and-optional-editor",
+            "records review metadata or conditionally publishes files and an import receipt in the destination workspace",
             "plan:read-only; original:conditional-per-path-publication-without-Git-HEAD-index-mutation; branch:explicit-clean-target-Git-merge; Plastic:no-server-mutation",
             "read-only-local-process",
             "read-only-local-state",
@@ -834,6 +836,7 @@
           "enum": [
             "idempotent-release",
             "idempotent-stop",
+            "resume the same source, destination, result, intent, digest, selection and Editor identity",
             "new-evidence-path; resume-with-original-workspace.ensure",
             "safe-read",
             "same-discard-intent",
@@ -1906,6 +1909,8 @@
           "type": "integer",
           "minimum": 0
         },
+        "pendingImport": { "$ref": "urn:splinter:v1:original-apply-state" },
+        "importHistory": { "$ref": "urn:splinter:v1:workspace-history-reference" },
         "resultHistory": {
           "$ref": "urn:splinter:v1:workspace-history-reference"
         },
@@ -1986,6 +1991,8 @@
         "originalApplyPlan": {
           "$ref": "urn:splinter:v1:original-apply-plan"
         },
+        "importPlan": { "$ref": "urn:splinter:v1:original-apply-plan" },
+        "importReceipt": { "$ref": "urn:splinter:v1:original-apply-state" },
         "sourceVerification": {
           "enum": [
             "not-checked",
@@ -2025,7 +2032,8 @@
                 "discarded",
                 "deferred-reclamation",
                 "released",
-                "resume-capture"
+                "resume-capture",
+                "resume-import"
               ]
             },
             "reasonCode": {
@@ -2039,7 +2047,9 @@
                 "workspace.compact",
                 "workspace.release",
                 "workspace.discard",
-                "workspace.list"
+                "workspace.list",
+                "workspace.import",
+                "workspace.checkpoint"
               ]
             }
           }

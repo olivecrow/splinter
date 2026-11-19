@@ -45,6 +45,11 @@ public sealed class WorkspaceRecord
     public WorkspaceHistoryReference OriginalApplyHistory { get; set; } = new(1, 0, null);
     public MetadataTreeRoot? AppliedPaths { get; set; }
     public MetadataTreeRoot? AppliedPathNames { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.Never)]
+    public OriginalApplyState? PendingImport { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public WorkspaceHistory<WorkspaceImportReceipt> Imports { get; } = [];
+    public WorkspaceHistoryReference ImportHistory { get; set; } = new(1, 0, null);
     [System.Text.Json.Serialization.JsonIgnore]
     public LiveOriginalEditorPermit? LiveOriginal { get; set; }
     public string? GeneratedDirectoryId { get; set; }
