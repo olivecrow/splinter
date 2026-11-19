@@ -237,7 +237,7 @@
     {
       "id": "workspace.read",
       "description": "Read one bounded page of immutable results, publication history, fixed plans or file state using a root-bound cursor.",
-      "cliUsage": "splinter workspace read --id <id> --collection <results|applies|plan|files|applied-paths|conflicts|preserved-scratch|maintenance-residuals|selection|deferred-reclamation> [--result <id>] [--plan-id <digest>] [--request-key <key> --store-scope <scope>] [--cursor <cursor>] [--page-size <1..1024>] [--home <path>]",
+      "cliUsage": "splinter workspace read --id <id> --collection <results|applies|imports|plan|files|applied-paths|conflicts|preserved-scratch|maintenance-residuals|selection|deferred-reclamation> [--result <id>] [--plan-id <digest>] [--request-key <key> --store-scope <scope>] [--cursor <cursor>] [--page-size <1..1024>] [--home <path>]",
       "inputTransport": "options",
       "inputSchema": "urn:splinter:v1:workspace-read-request",
       "outputSchema": "urn:splinter:v1:response",

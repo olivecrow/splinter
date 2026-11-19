@@ -575,6 +575,20 @@ public sealed class ContractAndCliTests(ContractCatalogFixture catalogs) : IClas
         Assert.Equal(response.GetProperty("data").GetProperty("nextCommand").GetString(), response.GetProperty("nextActions")[0].GetProperty("command").GetString());
     }
 
+    [Fact]
+    public async Task WorkspaceReadUsageListsEverySupportedCollection()
+    {
+        var (exitCode, response) = await Run("schema", "workspace.read");
+        Assert.Equal(0, exitCode);
+        var data = response.GetProperty("data");
+        var supported = data.GetProperty("input").GetProperty("properties").GetProperty("collection").GetProperty("enum");
+        string usage = data.GetProperty("descriptor").GetProperty("cliUsage").GetString()!;
+        var listed = System.Text.RegularExpressions.Regex.Match(usage, @"--collection <([^>]+)>");
+        Assert.True(listed.Success, usage);
+        Assert.Equal(supported.EnumerateArray().Select(item => item.GetString()!).Order(StringComparer.Ordinal),
+            listed.Groups[1].Value.Split('|').Order(StringComparer.Ordinal));
+    }
+
     [Theory]
     [InlineData("capabilities")]
     [InlineData("schema")]
