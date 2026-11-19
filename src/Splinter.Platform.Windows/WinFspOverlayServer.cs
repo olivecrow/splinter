@@ -10,7 +10,9 @@ namespace Splinter.Platform.Windows;
 public sealed record OverlayServeRequest(OverlayIdentity Identity, string DeltaPath, string MountPath,
     string ControlPath, string Token, [property: JsonRequired] SnapshotReadAccess ReadAccess,
     [property: JsonRequired] string SnapshotReceiptDirectory, [property: JsonRequired] string SnapshotOwnerId,
-    SourceViewSelection? SourceView = null, OverlayCacheSnapshotRead? CacheSnapshot = null, OverlayCacheSnapshotRead? GeneratedSnapshot = null);
+    SourceViewSelection? SourceView = null, OverlayCacheSnapshotRead? CacheSnapshot = null, OverlayCacheSnapshotRead? GeneratedSnapshot = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string[]? EphemeralTopLevel = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? EphemeralPath = null);
 
 public sealed record OverlayCacheSnapshotRead(SnapshotReadAccess ReadAccess, string ReceiptDirectory, string OwnerId);
 
@@ -105,13 +107,34 @@ public static class WinFspOverlayServer
             if (request.Identity.Version < 3) SourceCaptureTree.RecoverPins(sourceCaptures, sourcePins);
             WindowsJournalFilePins.RecoverCopies(Path.GetDirectoryName(request.ControlPath)!);
             using var capturedContent = CapturedResultReaders.Open(request.Identity, deltaPath);
-            using IWorkspaceDeltaStore store = request.SourceView is { } selectedView
-                ? new SourceViewDeltaStore(deltaPath, request.Identity, snapshot, selectedView, cacheBasis: cacheSnapshot)
-                : new JournalDeltaStore(deltaPath, request.Identity, basisTree, directoryGuardFactory: path => new WindowsJournalDirectoryGuard(path),
+            JournalDeltaStore? journalStore = null;
+            IWorkspaceDeltaStore store;
+            if (request.SourceView is { } selectedView)
+            {
+                store = new SourceViewDeltaStore(deltaPath, request.Identity, snapshot, selectedView, cacheBasis: cacheSnapshot);
+            }
+            else
+            {
+                journalStore = new JournalDeltaStore(deltaPath, request.Identity, basisTree, directoryGuardFactory: path => new WindowsJournalDirectoryGuard(path),
                     initialContentGeneration: intent.InitialContentGeneration,
                     boundedLogBytes: JournalDeltaStore.DefaultBoundedLogBytes, sourceFilePins: sourcePins, capturedContentReader: capturedContent);
-            if (store is JournalDeltaStore recovered)
-            { recovered.RecoverSourceCaptures(sourceCaptures); recovered.MaintainLiveStorage(); }
+                journalStore.RecoverSourceCaptures(sourceCaptures);
+                journalStore.MaintainLiveStorage();
+                string[] activeEphemeral = FilterEphemeralPatterns(request.EphemeralTopLevel, snapshot, request.Identity.Graft?.RelativePath);
+                if (activeEphemeral.Length > 0)
+                {
+                    string ephemeralDir = request.EphemeralPath ?? Path.Combine(Path.GetDirectoryName(request.ControlPath)!, "ephemeral");
+                    WindowsProcessWorkspaceProvider.CheckPath(ephemeralDir);
+                    var ephemeralStore = new EphemeralRangeStore(ephemeralDir, request.Identity, generatedTree, request.Identity.Graft?.RelativePath, activeEphemeral);
+                    store = new PartitionedWorkspaceDeltaStore(journalStore, ephemeralStore);
+                }
+                else
+                {
+                    store = journalStore;
+                }
+            }
+            using (store)
+            {
             long storeReadyTicks = Stopwatch.GetTimestamp() - replayStarted;
             var fileSystem = new WinFspOverlayFileSystem(store, ex =>
             {
@@ -121,7 +144,8 @@ public static class WinFspOverlayServer
                     lock (Json) File.AppendAllText(Path.Combine(request.ControlPath, "io-errors.jsonl"),
                         JsonSerializer.Serialize(new { at = DateTimeOffset.UtcNow, type = ex.GetType().Name, code = (ex as WorkspaceException)?.Code, ex.Message }, Json) + "\n");
             }, null, Environment.GetEnvironmentVariable("SPLINTER_WRITE_DIAGNOSTICS") == "1"
-                ? new WinFspOverlayFileSystem.WriteTelemetry() : null);
+                ? new WinFspOverlayFileSystem.WriteTelemetry() : null, enableKernelCaching: true,
+                kernelFlushRecoveryPath: Path.Combine(request.ControlPath, "kernel-readonly-restore.json"));
             using (var host = new FileSystemHost(fileSystem))
             {
                 using var wakeup = new OverlayRequestWakeup(request.ControlPath);
@@ -130,14 +154,14 @@ public static class WinFspOverlayServer
                 void ScheduleMaintenance(bool collectSegments = false)
                 {
                     if (maintenanceCancellation.IsCancellationRequested) return;
-                    if (store is not JournalDeltaStore maintained || Volatile.Read(ref maintenanceFailure) is not null) return;
+                    if (journalStore is null || Volatile.Read(ref maintenanceFailure) is not null) return;
                     if (collectSegments) Interlocked.Exchange(ref pendingSegmentCollection, 1);
                     if (maintenance is { IsCompleted: false }) return;
                     maintenance = Task.Run(() =>
                     {
                         try
                         {
-                            do { maintained.MaintainLiveStorage(ct: maintenanceCancellation.Token,
+                            do { journalStore.MaintainLiveStorage(ct: maintenanceCancellation.Token,
                                 collectSegments: Interlocked.Exchange(ref pendingSegmentCollection, 0) != 0); }
                             while (Volatile.Read(ref pendingSegmentCollection) != 0);
                         }
@@ -150,8 +174,9 @@ public static class WinFspOverlayServer
                     });
                 }
                 long nextObservation = 0, nextStorageMaintenance = Stopwatch.GetTimestamp() + 30 * Stopwatch.Frequency;
+                long rootOnlyStopSince = 0;
                 string? lastFlushRequest = null, lastSourceRequest = null, lastCaptureRequest = null, lastCompletionRequest = null;
-                int status = host.MountEx(mountPath, 8, null, false, 0);
+                int status = host.MountEx(mountPath, 16, null, false, 0);
                 if (status < 0) throw new WorkspaceException("OverlayMountFailed", $"WinFsp mount returned 0x{status:x8}.");
                 try
                 {
@@ -188,8 +213,24 @@ public static class WinFspOverlayServer
                         var stop = await WindowsProcessWorkspaceProvider.ReadAsync<StopRequest>(Path.Combine(request.ControlPath, "stop.json"), waitForPublication: false);
                         if (stop?.Token == request.Token)
                         {
-                            if (fileSystem.OpenHandles == 0)
+                            bool canStop = fileSystem.OpenHandles == 0;
+                            if (!canStop && stop.AllowRootDirectoryHandles && fileSystem.HasOnlyRootDirectoryHandles())
                             {
+                                // Machine-shared helpers (e.g. Unity.Licensing.Client) can inherit
+                                // the workspace root as their CWD even after the owned Editor exits.
+                                // Only explicit release/discard of Unity task mounts opts into this
+                                // short grace period when zero files/subdirectories remain open.
+                                long now = Stopwatch.GetTimestamp();
+                                if (rootOnlyStopSince == 0) rootOnlyStopSince = now;
+                                else if (now - rootOnlyStopSince >= Stopwatch.Frequency * 3 / 4) canStop = true;
+                            }
+                            else
+                            {
+                                rootOnlyStopSince = 0;
+                            }
+                            if (canStop)
+                            {
+                                fileSystem.FlushPendingKernelWrites(mountPath);
                                 maintenanceCancellation.Cancel();
                                 if (maintenance is not null) await maintenance;
                                 try { store.Flush(); }
@@ -206,7 +247,8 @@ public static class WinFspOverlayServer
                             // A normal stop is deferred while clients own handles.
                             // Throwing here would dispose the host and forcibly unmount it.
                             await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "stop-blocked.json"),
-                                new { request.Token, error = "OverlayHandlesRemain", openHandles = fileSystem.OpenHandles, observedAt = DateTimeOffset.UtcNow });
+                                new { request.Token, error = "OverlayHandlesRemain", openHandles = fileSystem.OpenHandles,
+                                    openPaths = fileSystem.SampleOpenPaths(), observedAt = DateTimeOffset.UtcNow });
                         }
                         if (Stopwatch.GetTimestamp() >= nextStorageMaintenance)
                         {
@@ -216,7 +258,22 @@ public static class WinFspOverlayServer
                         var flush = await WindowsProcessWorkspaceProvider.ReadAsync<OverlayFlushRequest>(Path.Combine(request.ControlPath, "flush.json"), waitForPublication: false);
                         if (flush?.Token == request.Token && flush.RequestId != lastFlushRequest)
                         {
-                            var receipt = ProcessFlush(store, flush, self.Id, self.StartTime.ToUniversalTime().Ticks);
+                            OverlayFlushReceipt receipt;
+                            try
+                            {
+                                fileSystem.FlushPendingKernelWrites(mountPath);
+                                receipt = ProcessFlush(store, flush, self.Id, self.StartTime.ToUniversalTime().Ticks);
+                            }
+                            catch (WorkspaceException error)
+                            {
+                                receipt = new(flush.Token, flush.RequestId, DateTimeOffset.UtcNow, null, self.Id,
+                                    self.StartTime.ToUniversalTime().Ticks, SealError: error.Code, SealErrorMessage: error.Message);
+                            }
+                            catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException or ObjectDisposedException)
+                            {
+                                receipt = new(flush.Token, flush.RequestId, DateTimeOffset.UtcNow, null, self.Id,
+                                    self.StartTime.ToUniversalTime().Ticks, SealError: "OverlayFlushFailed", SealErrorMessage: error.Message);
+                            }
                             await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "flush-result.json"), receipt);
                             lastFlushRequest = flush.RequestId;
                         }
@@ -226,11 +283,12 @@ public static class WinFspOverlayServer
                             JournalSourceCapture? capture = null; string? captureError = null;
                             try
                             {
-                                if (captureRequest.Id.Length != 24 || captureRequest.Id.Any(c => !char.IsAsciiHexDigit(c)) || store is not JournalDeltaStore live)
+                                if (captureRequest.Id.Length != 24 || captureRequest.Id.Any(c => !char.IsAsciiHexDigit(c)) || journalStore is null)
                                     throw new WorkspaceException("SourceCaptureRequestInvalid", "Require an owned task and an exact generation ID.");
+                                fileSystem.FlushPendingKernelWrites(mountPath);
                                 capture = fileSystem.CaptureSource(Path.Combine(sourceCaptures, captureRequest.Id), captureRequest.Id, captureRequest.ManagedPaths);
                                 string costPath = Path.Combine(sourceCaptures, captureRequest.Id, "capture-cost.json");
-                                if (!File.Exists(costPath)) SourceCaptureTree.Publish(costPath, new { store = live.LastSourceCaptureTiming, callbacks = fileSystem.LastSourceCaptureCallbacks });
+                                if (!File.Exists(costPath)) SourceCaptureTree.Publish(costPath, new { store = journalStore.LastSourceCaptureTiming, callbacks = fileSystem.LastSourceCaptureCallbacks });
                             }
                             catch (Exception ex) { captureError = (ex as WorkspaceException)?.Code ?? ex.GetType().Name; }
                             await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "capture-source-result.json"),
@@ -249,11 +307,11 @@ public static class WinFspOverlayServer
                                 string control = Path.GetDirectoryName(request.ControlPath)!;
                                 await RunStopAwareAsync(request.ControlPath, request.Token, ct => fileSystem.AdoptCapturedRanges(control, completion.Id, ct));
                                 SourceCaptureTree.Complete(Path.Combine(sourceCaptures, completion.Id), sourcePins);
-                                if (store is JournalDeltaStore completedRequest)
+                                if (journalStore is not null)
                                 {
-                                    completedRequest.CompleteSourceCaptureRequest(completion.Id);
+                                    journalStore.CompleteSourceCaptureRequest(completion.Id);
                                     if (completion.PrepareForRelease)
-                                        await RunStopAwareAsync(request.ControlPath, request.Token, ct => completedRequest.MaintainLiveStorage(ct: ct, resumeOnly: true));
+                                        await RunStopAwareAsync(request.ControlPath, request.Token, ct => journalStore.MaintainLiveStorage(ct: ct, resumeOnly: true));
                                     else ScheduleMaintenance(collectSegments: true);
                                 }
                             }
@@ -273,10 +331,11 @@ public static class WinFspOverlayServer
                             {
                                 if ((sourceQuery.ExpectedGeneration is null) != (sourceQuery.ContentPaths is null))
                                     throw new WorkspaceException("SourceObservationInvalid", "Initial evidence requires both paths and a fixed generation.");
-                                if (sourceQuery.ExpectedGeneration is { } expected && store is JournalDeltaStore journal)
-                                    initialContent = journal.ObserveInitialContent(sourceQuery.ManagedPaths, expected, sourceQuery.ContentPaths!);
+                                fileSystem.FlushPendingKernelWrites(mountPath);
+                                if (sourceQuery.ExpectedGeneration is { } expected && journalStore is not null)
+                                    initialContent = journalStore.ObserveInitialContent(sourceQuery.ManagedPaths, expected, sourceQuery.ContentPaths!);
                                 view = initialContent?.Generation ?? (store is SourceViewDeltaStore selected ? selected.ObserveChanges(sourceQuery.ManagedPaths)
-                                    : ((JournalDeltaStore)store).ObserveChanges(sourceQuery.ManagedPaths));
+                                    : journalStore!.ObserveChanges(sourceQuery.ManagedPaths));
                             }
                             catch (Exception ex) { sourceError = (ex as WorkspaceException)?.Code ?? ex.GetType().Name; }
                             try
@@ -315,6 +374,8 @@ public static class WinFspOverlayServer
                     if (maintenance is not null) await maintenance;
                 }
             }
+            try { store.Flush(); }
+            catch (WorkspaceException failed) when (failed.Code == "DeltaReconnectRequired") { Volatile.Write(ref lastFailureCode, failed.Code); }
             await WindowsProcessWorkspaceProvider.WriteAsync(statePath, new
             {
                 version = 1, request.Token, request.Identity.Id, phase = "unmounted", observedAt = DateTimeOffset.UtcNow,
@@ -325,6 +386,7 @@ public static class WinFspOverlayServer
                 storage = store.ObserveActivity(), ioFailures = Volatile.Read(ref failures), lastFailureCode = Volatile.Read(ref lastFailureCode)
             });
             return 0;
+            }
         }
         catch (Exception ex)
         {
@@ -366,6 +428,26 @@ public static class WinFspOverlayServer
         try { await Task.Run(() => action(operation.Token)); }
         finally { finished.Cancel(); await observer; }
     }
+    private static string[] FilterEphemeralPatterns(string[]? patterns, ISnapshotTree sourceSnapshot, string? graftRoot)
+    {
+        if (patterns is null || patterns.Length == 0) return [];
+        var trackedRoots = sourceSnapshot.EnumerateChildren("").Select(e => e.Path).ToArray();
+        var allowed = new List<string>(patterns.Length);
+        foreach (string raw in patterns)
+        {
+            if (string.IsNullOrWhiteSpace(raw) || raw.Contains('/') || raw.Contains('\\')) continue;
+            if (!string.IsNullOrEmpty(graftRoot) && raw.Equals(graftRoot, StringComparison.OrdinalIgnoreCase))
+            {
+                allowed.Add(raw);
+                continue;
+            }
+            bool tracked = raw[0] == '*'
+                ? trackedRoots.Any(name => name.EndsWith(raw[1..], StringComparison.OrdinalIgnoreCase))
+                : trackedRoots.Any(name => name.Equals(raw, StringComparison.OrdinalIgnoreCase));
+            if (!tracked) allowed.Add(raw);
+        }
+        return allowed.ToArray();
+    }
     internal static OverlayFlushReceipt ProcessFlush(IWorkspaceDeltaStore store, OverlayFlushRequest flush, int processId, long startTicks)
     {
         if (!flush.VerifySeal)
@@ -377,10 +459,14 @@ public static class WinFspOverlayServer
         {
             if (flush.ProcessId != processId || flush.ProcessStartTimeUtcTicks != startTicks)
                 throw new WorkspaceException("OverlayLeaseStale", "The seal request belongs to another provider lifetime.");
-            if (store is not JournalDeltaStore journal)
+            var journal = store is PartitionedWorkspaceDeltaStore partitioned ? partitioned.SourceStore : store as JournalDeltaStore;
+            if (journal is null)
                 throw new WorkspaceException("OverlaySealUnsupported", "A live physical seal requires the owned segmented writer.");
             var verified = journal.VerifyFlushedSegmentedSeal();
-            return new(flush.Token, flush.RequestId, DateTimeOffset.UtcNow, verified.Storage, processId, startTicks,
+            var storage = store is PartitionedWorkspaceDeltaStore p
+                ? verified.Storage with { ReadBytes = checked(verified.Storage.ReadBytes + p.EphemeralStore.ReadBytes) }
+                : verified.Storage;
+            return new(flush.Token, flush.RequestId, DateTimeOffset.UtcNow, storage, processId, startTicks,
                 verified.Seal, verified.ElapsedMilliseconds);
         }
         catch (WorkspaceException error)
@@ -394,7 +480,7 @@ public static class WinFspOverlayServer
                 SealError: "OverlaySealFailed", SealErrorMessage: error.Message);
         }
     }
-    private sealed record StopRequest(string Token);
+    private sealed record StopRequest(string Token, bool AllowRootDirectoryHandles = false);
     private sealed record CaptureSourceRequest(string Token, string RequestId, string Id, string[] ManagedPaths);
     private sealed record CompleteSourceRequest(string Token, string RequestId, string Id, bool PrepareForRelease);
 }

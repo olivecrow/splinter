@@ -73,15 +73,24 @@ internal static class OverlayDeltaInitialization
                         throw new WorkspaceException("SnapshotIdentityMismatch", "Initialization requires the exact owned manifest/read proof.");
                     var manifest = provider.Read(snapshot);
                     if (manifest.Version != 2 || !snapshot.Persistent || !snapshot.Differential ||
-                        snapshot.Consistency != "stopped-original-owned-directory" ||
-                        manifest.Items.Count(item => item.Entry.Path.Length == 0) != 1)
+                        snapshot.Consistency != "stopped-original-owned-directory")
                         throw new WorkspaceException("GeneratedBasisCorrupt", "Initialization requires a supported manifest with one root.");
-                    result.Root = manifest.Items.Single(item => item.Entry.Path.Length == 0).Entry;
+                    if (manifest.FastIndexPath is not null)
+                    {
+                        result.Root = FastOwnedDirectoryIndex.ReadRoot(manifest.FastIndexPath, manifest.FastIndexHash);
+                        result.stat = path => JournalDeltaStore.Normalize(path).Length == 0 ? result.Root : null;
+                    }
+                    else
+                    {
+                        if (manifest.Items.Count(item => item.Entry.Path.Length == 0) != 1)
+                            throw new WorkspaceException("GeneratedBasisCorrupt", "Initialization requires a supported manifest with one root.");
+                        result.Root = manifest.Items.Single(item => item.Entry.Path.Length == 0).Entry;
+                        var items = manifest.OpenIndex(StringComparer.OrdinalIgnoreCase); result.resources.Add(items);
+                        result.stat = path => items.GetValueOrDefault(JournalDeltaStore.Normalize(path))?.Entry;
+                    }
                     if (!result.Root.Directory || result.Root.Length != 0 || (result.Root.Attributes & 16) == 0)
                         throw new WorkspaceException("GeneratedBasisCorrupt", "The fixed manifest root must be a directory.");
                     SnapshotInputChecks.RejectUnsupportedAttributes(result.Root.Attributes);
-                    var items = manifest.OpenIndex(StringComparer.OrdinalIgnoreCase); result.resources.Add(items);
-                    result.stat = path => items.GetValueOrDefault(JournalDeltaStore.Normalize(path))?.Entry;
                     var pin = new WindowsOwnedDirectoryLease(snapshot.RootPath);
                     result.resources.Add(pin);
                     result.available = pin.EnsureAvailable;

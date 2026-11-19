@@ -18,11 +18,10 @@ internal sealed class WindowsProcessGroup : IDisposable
         var handle = CreateJobObjectW(0, name);
         if (handle.IsInvalid) throw Native("ProcessGroupCreateFailed");
         if (Marshal.GetLastWin32Error() == 183) { handle.Dispose(); throw new WorkspaceException("ProcessGroupExists", "A group with this identity already exists."); }
-        var group = new WindowsProcessGroup(handle);
-        var limits = new ExtendedLimits { Basic = new BasicLimits { LimitFlags = 0x2000 } }; // KILL_ON_JOB_CLOSE
-        if (!SetInformationJobObject(handle, 9, ref limits, Marshal.SizeOf<ExtendedLimits>()))
-        { group.Dispose(); throw Native("ProcessGroupLimitsFailed"); }
-        return group;
+        // Do not set KILL_ON_JOB_CLOSE: Unity launches a machine-shared
+        // Unity.Licensing.Client.exe child that inherits the Job Object and must
+        // stay alive for parallel Editors when one workspace exits.
+        return new WindowsProcessGroup(handle);
     }
     public static WindowsProcessGroup? Open(string name)
     {
@@ -56,22 +55,27 @@ internal sealed class WindowsProcessGroup : IDisposable
         using var threadHandle = new SafeFileHandle(info.Thread, true);
         return Process.GetProcessById(info.ProcessId);
     }
+    internal static bool IsSharedLicensingProcess(string? processName) =>
+        processName is not null && (
+            processName.Equals("Unity.Licensing.Client", StringComparison.OrdinalIgnoreCase) ||
+            processName.Equals("UnityLicensingClient", StringComparison.OrdinalIgnoreCase));
+
     public ProcessResources Observe(ApplicationLease lease)
     {
-        var pids = Pids(); long working = 0, privateBytes = 0;
+        var pids = Pids(); long working = 0, privateBytes = 0; int active = 0;
         foreach (int id in pids)
         {
             try
             {
                 using var p = Process.GetProcessById(id);
                 if (!IsProcessInJob(p.Handle, handle, out bool member)) throw Native("ProcessOwnershipUnknown");
-                if (!member || p.HasExited) continue;
+                if (!member || p.HasExited || IsSharedLicensingProcess(p.ProcessName)) continue;
+                active++;
                 working += p.WorkingSet64; privateBytes += p.PrivateMemorySize64;
             }
             catch (ArgumentException) { }
             catch (InvalidOperationException) { }
         }
-        int active = ActiveCount;
         return new(true, IdentityAlive(lease.ProcessId, lease.StartTimeUtcTicks), active,
             active == 0 ? 0 : working, active == 0 ? 0 : privateBytes);
     }
@@ -79,8 +83,21 @@ internal sealed class WindowsProcessGroup : IDisposable
     {
         get
         {
-            if (!QueryInformationJobObject(handle, 1, out Accounting accounting, Marshal.SizeOf<Accounting>(), 0)) throw Native("ProcessOwnershipUnknown");
-            return checked((int)accounting.ActiveProcesses);
+            int active = 0;
+            foreach (int id in Pids())
+            {
+                try
+                {
+                    using var p = Process.GetProcessById(id);
+                    if (!IsProcessInJob(p.Handle, handle, out bool member)) throw Native("ProcessOwnershipUnknown");
+                    if (!member || p.HasExited || IsSharedLicensingProcess(p.ProcessName)) continue;
+                    active++;
+                }
+                catch (ArgumentException) { }
+                catch (InvalidOperationException) { }
+                catch (Win32Exception) { active++; }
+            }
+            return active;
         }
     }
     private int[] Pids()
@@ -105,7 +122,31 @@ internal sealed class WindowsProcessGroup : IDisposable
     }
     public void TerminateRemainder()
     {
-        if (!TerminateJobObject(handle, 0)) throw Native("ProcessCleanupFailed");
+        foreach (int id in Pids())
+        {
+            // Open one handle with query+terminate access and verify Job membership and
+            // executable image on that exact handle to eliminate PID-reuse races.
+            using var proc = OpenProcess(0x1001u, false, id); // PROCESS_TERMINATE | PROCESS_QUERY_LIMITED_INFORMATION
+            if (proc.IsInvalid) continue;
+            if (!IsProcessInJob(proc.DangerousGetHandle(), handle, out bool member) || !member) continue;
+            string? imageName = QueryImageBaseName(proc);
+            if (!CanTerminateRemainder(imageName)) continue;
+            TerminateProcess(proc, 0);
+        }
+    }
+    internal static bool CanTerminateRemainder(string? imageName) =>
+        !string.IsNullOrWhiteSpace(imageName) && !IsSharedLicensingProcess(imageName);
+    private static string? QueryImageBaseName(SafeFileHandle processHandle)
+    {
+        for (int capacity = 512; capacity <= 32768; capacity *= 2)
+        {
+            var buffer = new StringBuilder(capacity);
+            uint size = (uint)capacity;
+            if (QueryFullProcessImageNameW(processHandle, 0, buffer, ref size))
+                return Path.GetFileNameWithoutExtension(buffer.ToString(0, checked((int)size)));
+            if (Marshal.GetLastWin32Error() != 122) break; // ERROR_INSUFFICIENT_BUFFER
+        }
+        return null;
     }
     public void Dispose() => handle.Dispose();
     internal static bool IdentityAlive(int pid, long ticks)
@@ -172,7 +213,8 @@ internal sealed class WindowsProcessGroup : IDisposable
     [DllImport("kernel32", SetLastError = true)] private static extern bool QueryInformationJobObject(SafeFileHandle job, int type, nint data, int size, nint returned);
     [DllImport("kernel32", SetLastError = true)] private static extern bool AssignProcessToJobObject(SafeFileHandle job, SafeFileHandle process);
     [DllImport("kernel32", SetLastError = true)] private static extern bool IsProcessInJob(nint process, SafeFileHandle job, out bool member);
-    [DllImport("kernel32", SetLastError = true)] private static extern bool TerminateJobObject(SafeFileHandle job, uint code);
+    [DllImport("kernel32", SetLastError = true)] private static extern SafeFileHandle OpenProcess(uint access, bool inherit, int processId);
+    [DllImport("kernel32", CharSet = CharSet.Unicode, SetLastError = true)] private static extern bool QueryFullProcessImageNameW(SafeFileHandle process, uint flags, StringBuilder exeName, ref uint size);
     [DllImport("kernel32", SetLastError = true)] private static extern bool TerminateProcess(SafeFileHandle process, uint code);
     [DllImport("kernel32", SetLastError = true)] private static extern uint ResumeThread(SafeFileHandle thread);
     [DllImport("kernel32", CharSet = CharSet.Unicode, SetLastError = true)] private static extern bool CreateProcessW(string? executable,

@@ -56,7 +56,7 @@ public sealed partial class WorkspaceCoordinator
             if (discard.Step == "unmount")
             {
                 await RequireDiscardSealAsync(w, ct);
-                await Snapshots.UnmountAsync(w, control, ct);
+                await Snapshots.UnmountAsync(w, control, ct, allowRootDirectoryHandles: w.ApplicationKind == "unity");
                 await RequireDiscardSealAsync(w, ct);
                 DiscardStep(w, "source");
             }

@@ -542,6 +542,44 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
         Assert.Equal("released", (await f.New().ReleaseAsync(first.Workspace.Id, ct)).Workspace.Phase);
     }
 
+    [Fact]
+    public async Task RootDirectoryHandleUnmountGraceIsScopedToUnityReleaseAndDiscardOnly()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        // Unity workspace: compact must pass false, release must pass true.
+        using (var unityRel = new Fixture())
+        {
+            string id = (await unityRel.New().EnsureAsync(unityRel.Project, "u-rel", "base", "git-snapshot", false, ct, applicationKind: "unity")).Workspace.Id;
+            await unityRel.New().CompactAsync(id, ct);
+            Assert.Equal([false], unityRel.Backend.SeenUnmountAllowRootHandles);
+            await unityRel.New().ReleaseAsync(id, ct);
+            Assert.Equal([false, true], unityRel.Backend.SeenUnmountAllowRootHandles);
+        }
+
+        // Unity workspace: discard must pass true.
+        using (var unityDisc = new Fixture { WithDiscard = true })
+        {
+            var w = (await unityDisc.New().EnsureAsync(unityDisc.Project, "u-disc", "base", "git-snapshot", false, ct, applicationKind: "unity")).Workspace;
+            await unityDisc.New().DiscardAsync(new WorkspaceDiscardRequest(w.Id, "discard-u", w.RequestDigest!), ct);
+            Assert.Equal([true], unityDisc.Backend.SeenUnmountAllowRootHandles);
+        }
+
+        // Non-Unity workspace: release and discard must both pass false.
+        using (var plainRel = new Fixture())
+        {
+            string id = (await plainRel.New().EnsureAsync(plainRel.Project, "p-rel", "base", "git-snapshot", false, ct, applicationKind: "none")).Workspace.Id;
+            await plainRel.New().ReleaseAsync(id, ct);
+            Assert.Equal([false], plainRel.Backend.SeenUnmountAllowRootHandles);
+        }
+        using (var plainDisc = new Fixture { WithDiscard = true })
+        {
+            var w = (await plainDisc.New().EnsureAsync(plainDisc.Project, "p-disc", "base", "git-snapshot", false, ct, applicationKind: "none")).Workspace;
+            await plainDisc.New().DiscardAsync(new WorkspaceDiscardRequest(w.Id, "discard-p", w.RequestDigest!), ct);
+            Assert.Equal([false], plainDisc.Backend.SeenUnmountAllowRootHandles);
+        }
+    }
+
     private sealed class Fixture : IDisposable
     {
         private readonly TestDirectory directory = new();
@@ -609,8 +647,9 @@ public sealed partial class SnapshotWorkspaceCoordinatorTests
             AfterSeal?.Invoke(SealCalls);
             return Task.FromResult(seal);
         }
-        public Task UnmountAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
-        { Mounted = false; if (Directory.Exists(w.Path)) Directory.Delete(w.Path); if (WriteDuringUnmount) sequence++; FailOnce("unmount"); return Task.CompletedTask; }
+        public List<bool> SeenUnmountAllowRootHandles { get; } = [];
+        public Task UnmountAsync(WorkspaceRecord w, string c, CancellationToken ct = default, bool allowRootDirectoryHandles = false)
+        { SeenUnmountAllowRootHandles.Add(allowRootDirectoryHandles); Mounted = false; if (Directory.Exists(w.Path)) Directory.Delete(w.Path); if (WriteDuringUnmount) sequence++; FailOnce("unmount"); return Task.CompletedTask; }
         public Task<SnapshotJournalCompaction> CompactAsync(WorkspaceRecord w, string c, CancellationToken ct = default,
             long? maxEstimatedJournalOverlapBytes = null, bool? revertBaseRanges = null)
         { CompactCalls++; SeenOverlapBudgets.Add(maxEstimatedJournalOverlapBytes); SeenReversionOptions.Add(revertBaseRanges);

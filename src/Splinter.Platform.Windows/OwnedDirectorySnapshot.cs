@@ -1,6 +1,8 @@
 using System.Security.Cryptography;
 using System.Buffers;
+using System.IO.Enumeration;
 using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Win32.SafeHandles;
@@ -17,23 +19,55 @@ public sealed record OwnedDirectoryProof(int Version, SnapshotReference Snapshot
 // fixed in a manifest. No payload cache or mutable-project fallback exists.
 public sealed class OwnedDirectorySnapshotTree : ISnapshotTree, IDisposable
 {
+    private sealed class LazyHandle(string path, SafeFileHandle handle)
+    {
+        public readonly string Path = path;
+        public readonly SafeFileHandle Handle = handle;
+        public int ActiveRefs;
+        public bool Evicted;
+        public LinkedListNode<LazyHandle>? LruNode;
+    }
+
+    private const int MaxLazyHandles = 512;
     internal static int DefaultWorkers => Math.Clamp(Environment.ProcessorCount, 2, 8);
     public const string ProviderName = "owned-directory";
     public SnapshotReference Snapshot { get; }
     // Pinned read-only handles and immutable indexes have no shared position.
     public bool SupportsConcurrentReads => true;
-    private readonly OwnedDirectoryItemIndex items;
+    private readonly OwnedDirectoryItemIndex? items;
+    private readonly FastOwnedDirectoryIndex? fastIndex;
     private readonly Dictionary<string, SafeFileHandle> files = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object lazyPoolGate = new();
+    private readonly Dictionary<string, LazyHandle> lazyHandlePool = new(StringComparer.OrdinalIgnoreCase);
+    private readonly LinkedList<LazyHandle> lazyHandleLru = [];
     private readonly object gate = new();
     private readonly Action? readAdmitted;
     private WindowsOwnedDirectoryLease? directoryLease;
     private WindowsDirectoryTreeProof? directoryProof;
     private bool closing, disposed, handingOff;
+    private int closingInt;
     private int activeReads;
     private Exception? readFailure;
     public OwnedDirectoryManifest Manifest { get; }
     public OwnedDirectorySnapshotTree(OwnedDirectoryManifest manifest, SnapshotReference snapshot, bool verifyContent = true)
         : this(manifest, snapshot, verifyContent, null, DefaultWorkers) { }
+    private readonly struct LazyTag;
+    internal static OwnedDirectorySnapshotTree OpenLazy(OwnedDirectoryManifest manifest, SnapshotReference snapshot)
+        => new(manifest, snapshot, default(LazyTag));
+    private OwnedDirectorySnapshotTree(OwnedDirectoryManifest manifest, SnapshotReference snapshot, LazyTag _)
+    {
+        if (manifest.Version != 2 || manifest.Snapshot != snapshot || snapshot.Provider != ProviderName || !snapshot.Persistent || !snapshot.Differential ||
+            snapshot.Consistency != "stopped-original-owned-directory" || manifest.FastIndexPath is null)
+            throw new WorkspaceException("GeneratedBasisMismatch", "Preserve an unsupported or changed generated basis.");
+        Manifest = manifest; Snapshot = snapshot;
+        try
+        {
+            fastIndex = FastOwnedDirectoryIndex.Load(manifest.FastIndexPath, manifest.FastIndexHash);
+            if (OperatingSystem.IsWindows())
+                directoryLease = new(snapshot.RootPath);
+        }
+        catch { Dispose(); throw; }
+    }
     internal OwnedDirectorySnapshotTree(OwnedDirectoryManifest manifest, SnapshotReference snapshot, bool verifyContent, Action? readAdmitted,
         int hashWorkers = 2, CancellationToken ct = default, Action<string>? beforeHash = null)
     {
@@ -101,6 +135,52 @@ public sealed class OwnedDirectorySnapshotTree : ISnapshotTree, IDisposable
     }
     public static OwnedDirectoryManifest Capture(SnapshotReference snapshot, string owner, string? metadataDirectory = null) =>
         CaptureCancellable(snapshot, owner, default, metadataDirectory);
+    internal static OwnedDirectoryManifest CaptureFastLibrary(SnapshotReference snapshot, string owner, string fastIndexPath, CancellationToken ct)
+    {
+        string rootPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(snapshot.RootPath));
+        WorkspaceStore.EnsurePlainPath(rootPath);
+        using var lease = OperatingSystem.IsWindows() ? new WindowsOwnedDirectoryLease(rootPath) : null;
+        var rootInfo = new DirectoryInfo(rootPath);
+        SnapshotInputChecks.RejectUnsupportedAttributes((uint)rootInfo.Attributes, rootPath);
+        var entries = new List<SnapshotEntry>(1024)
+        {
+            new("", true, 0, (uint)rootInfo.Attributes,
+                rootInfo.CreationTimeUtc.ToFileTimeUtc(), rootInfo.LastAccessTimeUtc.ToFileTimeUtc(), rootInfo.LastWriteTimeUtc.ToFileTimeUtc())
+        };
+        int prefixLength = rootPath.Length + 1;
+        var enumerable = new FileSystemEnumerable<SnapshotEntry>(rootPath,
+            (ref FileSystemEntry entry) =>
+            {
+                ct.ThrowIfCancellationRequested();
+                string fullPath = entry.ToFullPath();
+                SnapshotInputChecks.RejectUnsupportedAttributes((uint)entry.Attributes, fullPath);
+                string relative = fullPath[prefixLength..].Replace('\\', '/');
+                return new SnapshotEntry(relative, entry.IsDirectory, entry.IsDirectory ? 0 : entry.Length, (uint)entry.Attributes,
+                    entry.CreationTimeUtc.ToFileTime(), entry.LastAccessTimeUtc.ToFileTime(), entry.LastWriteTimeUtc.ToFileTime());
+            },
+            new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = false, AttributesToSkip = 0 });
+        foreach (var entry in enumerable) entries.Add(entry);
+
+        // Verify no active writer holds a Library file open, reject hardlinks/reparse points,
+        // and confirm exact length and write timestamp on the opened handle.
+        ParallelFiles(entries.Where(e => !e.Directory), entry =>
+        {
+            ct.ThrowIfCancellationRequested();
+            string fullPath = Path.Combine(rootPath, entry.Path.Replace('/', Path.DirectorySeparatorChar));
+            using var handle = File.OpenHandle(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            ValidateFastLibraryFileHandle(handle, entry, duringCapture: true);
+        }, DefaultWorkers, ct);
+
+        var (count, logicalBytes, hash) = FastOwnedDirectoryIndex.Write(fastIndexPath, entries);
+        return new OwnedDirectoryManifest(2, snapshot, owner, FastOwnedDirectoryIndex.Enumerate(fastIndexPath, hash))
+        {
+            FastIndex = OwnedDirectoryManifest.FastIndexFileName,
+            FastIndexHash = hash,
+            FastIndexCount = count,
+            FastIndexLogicalBytes = logicalBytes,
+            FastIndexPath = fastIndexPath
+        };
+    }
     internal static OwnedDirectoryManifest CaptureCancellable(SnapshotReference snapshot, string owner, CancellationToken ct, string? metadataDirectory = null)
     {
         WorkspaceStore.EnsurePlainPath(snapshot.RootPath);
@@ -188,23 +268,46 @@ public sealed class OwnedDirectorySnapshotTree : ISnapshotTree, IDisposable
         if (directoryLease is not null) directoryLease.EnsureAvailable();
         else if (!Directory.Exists(Snapshot.RootPath)) throw new WorkspaceException("SnapshotMissing", "Retain the missing generated basis.");
     }
-    public void EnsureAvailable() { lock (gate) Check(); }
-    public SnapshotEntry? Stat(string path) { lock (gate) { Check(); return items.GetValueOrDefault(JournalDeltaStore.Normalize(path))?.Entry; } }
+    private void CheckFast()
+    {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref closingInt) != 0 || disposed, this);
+        if (Volatile.Read(ref readFailure) is not null) throw new WorkspaceException("SnapshotReadFailed", "Preserve the generated basis after a failed read or root handoff.");
+        if (directoryLease is not null) directoryLease.EnsureAvailable();
+        else if (!Directory.Exists(Snapshot.RootPath)) throw new WorkspaceException("SnapshotMissing", "Retain the missing generated basis.");
+    }
+    public void EnsureAvailable()
+    {
+        if (fastIndex is not null) { CheckFast(); return; }
+        lock (gate) Check();
+    }
+    public SnapshotEntry? Stat(string path)
+    {
+        if (fastIndex is not null) { CheckFast(); return fastIndex.Find(JournalDeltaStore.Normalize(path)); }
+        lock (gate) { Check(); return items!.GetValueOrDefault(JournalDeltaStore.Normalize(path))?.Entry; }
+    }
     public IReadOnlyList<SnapshotEntry> List(string path)
     {
+        if (fastIndex is not null)
+        {
+            CheckFast(); path = JournalDeltaStore.Normalize(path);
+            if (fastIndex.Find(path) is not { Directory: true }) throw new DirectoryNotFoundException(path);
+            return fastIndex.EnumerateChildren(path);
+        }
         lock (gate)
         {
             Check(); path = JournalDeltaStore.Normalize(path);
-            if (items.GetValueOrDefault(path)?.Entry is not { Directory: true }) throw new DirectoryNotFoundException(path);
+            if (items!.GetValueOrDefault(path)?.Entry is not { Directory: true }) throw new DirectoryNotFoundException(path);
             return items.EnumerateChildren(path).Select(i => i.Entry).ToArray();
         }
     }
     public IEnumerable<SnapshotEntry> EnumerateChildren(string path)
     {
-        lock (gate) { Check(); return items.EnumerateChildren(JournalDeltaStore.Normalize(path)).Select(item => item.Entry); }
+        if (fastIndex is not null) { CheckFast(); return fastIndex.EnumerateChildren(JournalDeltaStore.Normalize(path)); }
+        lock (gate) { Check(); return items!.EnumerateChildren(JournalDeltaStore.Normalize(path)).Select(item => item.Entry); }
     }
     public int Read(string path, long offset, Span<byte> destination)
     {
+        if (fastIndex is not null) return ReadLazy(path, offset, destination);
         SafeFileHandle handle;
         lock (gate) { Check(); handle = files[JournalDeltaStore.Normalize(path)]; activeReads++; }
         try
@@ -222,7 +325,124 @@ public sealed class OwnedDirectorySnapshotTree : ISnapshotTree, IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or WorkspaceException)
         { lock (gate) readFailure ??= ex; throw; }
-        finally { lock (gate) { activeReads--; Monitor.PulseAll(gate); } }
+        finally { lock (gate) { activeReads--; if (closing || handingOff) Monitor.PulseAll(gate); } }
+    }
+    private int ReadLazy(string path, long offset, Span<byte> destination)
+    {
+        string normalized = JournalDeltaStore.Normalize(path);
+        CheckFast();
+        Interlocked.Increment(ref activeReads);
+        try
+        {
+            CheckFast();
+            var pooled = AcquireLazyHandle(normalized);
+            try
+            {
+                int read = RandomAccess.Read(pooled.Handle, destination, offset);
+                directoryLease?.EnsureAvailable();
+                return read;
+            }
+            finally { ReleaseLazyHandle(pooled); }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or WorkspaceException)
+        { Interlocked.CompareExchange(ref readFailure, ex, null); throw; }
+        finally
+        {
+            if (Interlocked.Decrement(ref activeReads) == 0 && Volatile.Read(ref closingInt) != 0)
+                lock (gate) Monitor.PulseAll(gate);
+        }
+    }
+    private LazyHandle AcquireLazyHandle(string normalizedPath)
+    {
+        LazyHandle? toDispose = null;
+        try
+        {
+            lock (lazyPoolGate)
+            {
+                if (lazyHandlePool.TryGetValue(normalizedPath, out var existing))
+                {
+                    lazyHandleLru.Remove(existing.LruNode!);
+                    lazyHandleLru.AddLast(existing.LruNode!);
+                    existing.ActiveRefs++;
+                    return existing;
+                }
+            }
+
+            var entry = fastIndex!.Find(normalizedPath) ?? throw new FileNotFoundException(normalizedPath);
+            if (entry.Directory) throw new IOException("Cannot read a directory.");
+            string fullPath = Path.Combine(Snapshot.RootPath, normalizedPath.Replace('/', Path.DirectorySeparatorChar));
+            var handle = File.OpenHandle(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read, FileOptions.RandomAccess);
+            try
+            {
+                ValidateFastLibraryFileHandle(handle, entry, duringCapture: false);
+            }
+            catch { handle.Dispose(); throw; }
+
+            lock (lazyPoolGate)
+            {
+                if (lazyHandlePool.TryGetValue(normalizedPath, out var raceWinner))
+                {
+                    handle.Dispose();
+                    lazyHandleLru.Remove(raceWinner.LruNode!);
+                    lazyHandleLru.AddLast(raceWinner.LruNode!);
+                    raceWinner.ActiveRefs++;
+                    return raceWinner;
+                }
+                if (lazyHandlePool.Count >= MaxLazyHandles)
+                {
+                    var victim = lazyHandleLru.First;
+                    while (victim is not null && victim.Value.ActiveRefs > 0) victim = victim.Next;
+                    if (victim is not null)
+                    {
+                        lazyHandleLru.Remove(victim);
+                        lazyHandlePool.Remove(victim.Value.Path);
+                        victim.Value.Evicted = true;
+                        toDispose = victim.Value;
+                    }
+                }
+                var created = new LazyHandle(normalizedPath, handle) { ActiveRefs = 1 };
+                created.LruNode = lazyHandleLru.AddLast(created);
+                lazyHandlePool[normalizedPath] = created;
+                return created;
+            }
+        }
+        finally { toDispose?.Handle.Dispose(); }
+    }
+    private static void ValidateFastLibraryFileHandle(SafeFileHandle handle, SnapshotEntry entry, bool duringCapture)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            if (!GetFileInformationByHandle(handle, out var info))
+                throw new WorkspaceException("GeneratedBasisChanged", "Cannot inspect the generated basis file handle.");
+            if ((info.Attributes & 0x400) != 0 || (info.Attributes & 0x10) != 0)
+                throw new WorkspaceException("SnapshotFileUnsupported", $"Generated basis entry '{entry.Path}' must be an ordinary file.");
+            if (info.Links > 1)
+                throw new WorkspaceException("SnapshotFileUnsupported", $"Hardlinked file '{entry.Path}' is unsupported in the shared generated basis.");
+            long actualLength = ((long)info.SizeHigh << 32) | info.SizeLow;
+            long actualWriteTime = ((long)info.WriteHigh << 32) | info.WriteLow;
+            if (actualLength != entry.Length || actualWriteTime != entry.LastWriteTime)
+                throw new WorkspaceException("GeneratedBasisChanged",
+                    duringCapture ? "Generated content changed during capture." : "Generated content differs from its frozen manifest.");
+            return;
+        }
+        if (RandomAccess.GetLength(handle) != entry.Length)
+            throw new WorkspaceException("GeneratedBasisChanged",
+                duringCapture ? "Generated content changed during capture." : "Generated content differs from its frozen manifest.");
+    }
+    [StructLayout(LayoutKind.Sequential)]
+    private struct FileInformation
+    { public uint Attributes, CreationLow, CreationHigh, AccessLow, AccessHigh, WriteLow, WriteHigh, VolumeSerial, SizeHigh, SizeLow, Links, IndexHigh, IndexLow; }
+    [DllImport("kernel32", SetLastError = true)]
+    private static extern bool GetFileInformationByHandle(SafeFileHandle file, out FileInformation info);
+    private void ReleaseLazyHandle(LazyHandle entry)
+    {
+        bool shouldDispose = false;
+        lock (lazyPoolGate)
+        {
+            entry.ActiveRefs--;
+            if (entry.Evicted && entry.ActiveRefs == 0) shouldDispose = true;
+        }
+        if (shouldDispose) entry.Handle.Dispose();
     }
     private string Resolve(string path)
     {
@@ -262,11 +482,18 @@ public sealed class OwnedDirectorySnapshotTree : ISnapshotTree, IDisposable
         lock (gate)
         {
             if (disposed) return;
-            closing = true;
-            while (activeReads != 0 || handingOff) Monitor.Wait(gate);
+            closing = true; Volatile.Write(ref closingInt, 1);
+            while (Volatile.Read(ref activeReads) != 0 || handingOff) Monitor.Wait(gate);
             if (disposed) return;
             foreach (var file in files.Values) file.Dispose();
-            files.Clear(); directoryProof?.Dispose(); directoryLease?.Dispose(); items.Dispose(); disposed = true;
+            files.Clear();
+            lock (lazyPoolGate)
+            {
+                foreach (var entry in lazyHandlePool.Values) entry.Handle.Dispose();
+                lazyHandlePool.Clear();
+                lazyHandleLru.Clear();
+            }
+            directoryProof?.Dispose(); directoryLease?.Dispose(); items?.Dispose(); disposed = true;
             Monitor.PulseAll(gate);
         }
     }

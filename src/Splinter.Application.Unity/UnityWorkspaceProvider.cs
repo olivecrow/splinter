@@ -42,9 +42,13 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
             PlainPath(path);
             if (File.Exists(path)) File.Delete(path);
         }
+        // Do not use the WinFsp workspace mount as process CWD: machine-shared
+        // Unity helpers (e.g. Unity.Licensing.Client) inherit CWD and would pin
+        // an open handle on the mount after this Editor exits.
+        string workingDirectory = Path.GetDirectoryName(executable) ?? Path.GetFullPath(controlPath);
         return await Processes.StartAsync(new ProcessLaunch(executable,
             ["-projectPath", root, "-logFile", Path.Combine(controlPath, "editor.log"),
-             "-splinterControlPath", Path.GetFullPath(controlPath), "-splinterToken", token], root, token), controlPath, ct);
+             "-splinterControlPath", Path.GetFullPath(controlPath), "-splinterToken", token], workingDirectory, token), controlPath, ct);
     }
 
     internal static async Task PrepareInfrastructureAsync(WorkspaceRecord workspace, CancellationToken ct)

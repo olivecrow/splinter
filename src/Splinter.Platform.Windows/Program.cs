@@ -29,8 +29,11 @@ internal static class Program
             await root.WaitForExitAsync();
             // Record the root's exit code independently of cleanup of its own descendants.
             for (int attempt = 0; attempt < 20 && job.ActiveCount != 0; attempt++) await Task.Delay(100);
-            if (job.ActiveCount != 0) job.TerminateRemainder();
-            for (int attempt = 0; attempt < 100 && job.ActiveCount != 0; attempt++) await Task.Delay(100);
+            for (int attempt = 0; attempt < 100 && job.ActiveCount != 0; attempt++)
+            {
+                if (attempt % 5 == 0) job.TerminateRemainder();
+                await Task.Delay(100);
+            }
             if (job.ActiveCount != 0) throw new WorkspaceException("ProcessCleanupIncomplete", "Job members have not exited.");
             await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(control, "process-exit.json"),
                 new { launch.Token, observedAt = DateTimeOffset.UtcNow, rootExitCode = root.ExitCode,

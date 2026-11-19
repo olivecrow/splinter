@@ -170,7 +170,7 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, ApplicationProje
             if (Directory.Exists(root))
             {
                 var prior = await WindowsProcessWorkspaceProvider.ReadAsync<PreparationIntent>(intentPath, ct, waitForPublication: false);
-                if (prior != intent || Directory.EnumerateFileSystemEntries(root).Any(p => Path.GetFileName(p) is not ("prepare-intent.json" or "manifest.json" or "proof.json" or "readers.lock" or "dependents" or OwnedDirectoryManifest.MetadataDirectoryName or GitSourceMetadata.FileName or GitSourceMetadata.DirectoryName)) ||
+                if (prior != intent || Directory.EnumerateFileSystemEntries(root).Any(p => Path.GetFileName(p) is not ("prepare-intent.json" or "manifest.json" or "proof.json" or "readers.lock" or "dependents" or OwnedDirectoryManifest.MetadataDirectoryName or OwnedDirectoryManifest.FastIndexFileName or GitSourceMetadata.FileName or GitSourceMetadata.DirectoryName)) ||
                     Directory.Exists(Path.Combine(root, "dependents")) && Directory.EnumerateFileSystemEntries(Path.Combine(root, "dependents")).Any())
                     throw new WorkspaceException("GeneratedBasisPreparationConflict", "Retain an unowned or uncertain preparation root.");
                 foreach (string entry in Directory.EnumerateFileSystemEntries(root)) WorkspaceStore.EnsurePlainPath(entry);
@@ -200,21 +200,26 @@ public sealed class ManagedDirectoryBasis(WorkspaceStore store, ApplicationProje
             }
             else
             {
+                bool fastUnityLibrary = !projectBasis && applicationKind == "unity";
                 // One full admission walk owns both file-policy and namespace
-                // checks. Ordinary native directory pins replace repeated
-                // rootward path walks while retaining current leaf admission.
+                // checks. Unity's disposable Library uses a single-pass fast index
+                // without full-payload SHA-256 hashing; VCS-free projects keep full verification.
                 if (projectBasis) SnapshotInputChecks.VerifyManagedProjectTree(original, ct);
-                else SnapshotInputChecks.VerifyTree(original, ct, false, false);
+                else if (!fastUnityLibrary) SnapshotInputChecks.VerifyTree(original, ct, false, false);
                 Directory.CreateDirectory(root);
                 if (!File.Exists(intentPath)) await WindowsProcessWorkspaceProvider.WriteAsync(intentPath, intent, ct);
                 var snapshot = new SnapshotReference(id, OwnedDirectorySnapshotTree.ProviderName, basisPath, basisPath, DateTimeOffset.UtcNow, true, true, "stopped-original-owned-directory");
-                var manifest = OwnedDirectorySnapshotTree.CaptureCancellable(snapshot with { RootPath = original }, id, ct,
-                    Path.Combine(root, OwnedDirectoryManifest.MetadataDirectoryName)) with { Snapshot = snapshot };
+                OwnedDirectoryManifest manifest = fastUnityLibrary
+                    ? OwnedDirectorySnapshotTree.CaptureFastLibrary(snapshot with { RootPath = original }, id,
+                        Path.Combine(root, OwnedDirectoryManifest.FastIndexFileName), ct) with { Snapshot = snapshot }
+                    : OwnedDirectorySnapshotTree.CaptureCancellable(snapshot with { RootPath = original }, id, ct,
+                        Path.Combine(root, OwnedDirectoryManifest.MetadataDirectoryName)) with { Snapshot = snapshot };
                 await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(root, "manifest.json"), manifest, ct);
                 string manifestHash = HashFile(Path.Combine(root, "manifest.json"));
-                await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(root, "proof.json"), new OwnedDirectoryProof(1, snapshot, id, manifestHash, manifest.Items.Sum(i => i.Entry.Length)), ct);
+                long logicalBytes = manifest.FastIndexLogicalBytes ?? manifest.Items.Sum(i => i.Entry.Length);
+                await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(root, "proof.json"), new OwnedDirectoryProof(1, snapshot, id, manifestHash, logicalBytes), ct);
                 basis = new(id, project, descriptor.RelativePath, snapshot, root, id, manifestHash);
-                if (!projectBasis && applicationKind == "unity")
+                if (fastUnityLibrary)
                 {
                     var metadata = await WindowsGitSourceMetadata.CaptureAsync(project, basis, ct);
                     if (metadata is not null)

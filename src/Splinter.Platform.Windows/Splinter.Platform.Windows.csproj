@@ -1,5 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Splinter.SourceControl.Git/Splinter.SourceControl.Git.csproj" />
     <ProjectReference Include="../Splinter.SourceControl.Files/Splinter.SourceControl.Files.csproj" />

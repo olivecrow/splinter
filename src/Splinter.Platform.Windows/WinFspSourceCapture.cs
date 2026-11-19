@@ -19,7 +19,8 @@ public sealed partial class WinFspOverlayFileSystem
             long entered = Stopwatch.GetTimestamp();
             try
             {
-                capture = store is JournalDeltaStore journal ? journal.CaptureSource(directory, id, managedPaths, deferBackingPins: journal.Identity.Version == 3)
+                var journal = store is PartitionedWorkspaceDeltaStore partitioned ? partitioned.SourceStore : store as JournalDeltaStore;
+                capture = journal is not null ? journal.CaptureSource(directory, id, managedPaths, deferBackingPins: journal.Identity.Version == 3)
                     : throw new WorkspaceException("SourceCaptureUnsupported", "Only the owned task journal can capture source.");
             }
             finally { LastSourceCaptureCallbacks = new(Stopwatch.Frequency, drained - started, entered - drained, Stopwatch.GetTimestamp() - entered); }
@@ -31,7 +32,8 @@ public sealed partial class WinFspOverlayFileSystem
     internal void AdoptCapturedRanges(string control, string id, CancellationToken ct = default)
     {
         DrainAcceptedWrites();
-        if (store is not JournalDeltaStore journal) throw new WorkspaceException("SourceRangeAdoptionUnsupported", "Require the exact owned task journal.");
+        var journal = store is PartitionedWorkspaceDeltaStore partitioned ? partitioned.SourceStore : store as JournalDeltaStore;
+        if (journal is null) throw new WorkspaceException("SourceRangeAdoptionUnsupported", "Require the exact owned task journal.");
         journal.AdoptCapturedRanges(control, id, ct);
     }
 }

@@ -89,10 +89,20 @@ public sealed partial class NtfsSnapshotWorkspaceBackend(string runnerCache, IWo
         }
         string? consumed = request is null ? null : await WinFspOverlayClient.ConsumedVerificationAsync(request, ct);
         var access = await WorkspaceSnapshotBasis.ResolveAsync(snapshot, Path.Combine(control, "snapshot"), w.Id, consumed, ct);
+        string[]? ephemeralTopLevel = w.StorageMode is "git-snapshot" or "plastic-snapshot"
+            ? w.ManagedPaths
+                .Concat(w.GeneratedDirectory is { RelativePath.Length: > 0 } g ? [g.RelativePath] : Array.Empty<string>())
+                .Where(p => !string.IsNullOrWhiteSpace(p) && !p.Contains('/') && !p.Contains('\\'))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray()
+            : null;
+        if (ephemeralTopLevel is { Length: 0 }) ephemeralTopLevel = null;
+        string? ephemeralPath = ephemeralTopLevel is not null ? Path.Combine(control, "ephemeral") : null;
         request = request is null
             ? new(Identity(w), DeltaPath(control), w.Path, OverlayControl(control), Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32)),
-                access, Path.Combine(control, "snapshot"), w.Id)
-            : request with { ReadAccess = access, SnapshotReceiptDirectory = Path.Combine(control, "snapshot"), SnapshotOwnerId = w.Id };
+                access, Path.Combine(control, "snapshot"), w.Id, EphemeralTopLevel: ephemeralTopLevel, EphemeralPath: ephemeralPath)
+            : request with { ReadAccess = access, SnapshotReceiptDirectory = Path.Combine(control, "snapshot"), SnapshotOwnerId = w.Id,
+                EphemeralTopLevel = ephemeralTopLevel, EphemeralPath = ephemeralPath };
         if (w.StorageMode != "project-snapshot" && w.GeneratedDirectory is { } generated)
         {
             await Dependencies(w).AttachAsync(generated.Id, w, ct);
@@ -200,10 +210,10 @@ public sealed partial class NtfsSnapshotWorkspaceBackend(string runnerCache, IWo
         await RecordRead(control, w, "seal", seal.JournalBytes, elapsed!.Value, ct);
         return seal;
     }
-    public async Task UnmountAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
+    public async Task UnmountAsync(WorkspaceRecord w, string control, CancellationToken ct = default, bool allowRootDirectoryHandles = false)
     {
         var request = await Request(w, control, ct) ?? throw new WorkspaceException("OverlayRequestMissing", "No owned mount request.");
-        await WinFspOverlayClient.StopAsync(request, ct);
+        await WinFspOverlayClient.StopAsync(request, ct, allowRootDirectoryHandles);
     }
     public async Task<SnapshotJournalCompaction> CompactAsync(WorkspaceRecord w, string control, CancellationToken ct = default,
         long? maxEstimatedJournalOverlapBytes = null, bool? revertBaseRanges = null)
@@ -312,7 +322,7 @@ public sealed partial class NtfsSnapshotWorkspaceBackend(string runnerCache, IWo
         }
         else if (intent != result) throw new WorkspaceException("OverlayResultRequired", "Reclamation intent differs from the retained result.");
         if (File.Exists(delta)) throw new WorkspaceException("UnownedDeltaFiles", "A file replaced the owned delta directory; preserve it.");
-        if (!Directory.Exists(delta)) return;
+        if (!Directory.Exists(delta)) { RemoveEphemeralDirectory(control); return; }
         if (CurrentJournalReclamation.HasIntent(boundedReceipt) || File.Exists(currentJournal) && CurrentJournalReclamation.IsManagedJournal(currentJournal))
         {
             void Reclaim() => CurrentJournalReclamation.ReclaimDirectory(delta, result.Seal, ["identity.json"], boundedReceipt,
@@ -326,12 +336,14 @@ public sealed partial class NtfsSnapshotWorkspaceBackend(string runnerCache, IWo
                 ResumeStoppedJournalMaintenance(request, result.Seal, ct);
                 Reclaim();
             }
+            RemoveEphemeralDirectory(control);
             return;
         }
         if (File.Exists(latestReceipt) || File.Exists(currentJournal) && LatestJournalReclamation.IsLatest(currentJournal))
         {
             LatestJournalReclamation.ReclaimDirectory(delta, result.Seal, ["identity.json"], latestReceipt,
                 directoryGuardFactory: path => new WindowsJournalDirectoryGuard(path));
+            RemoveEphemeralDirectory(control);
             return;
         }
         foreach (string entry in Directory.EnumerateFileSystemEntries(delta))
@@ -358,6 +370,14 @@ public sealed partial class NtfsSnapshotWorkspaceBackend(string runnerCache, IWo
         string identity = Path.Combine(delta, "identity.json");
         if (File.Exists(identity)) File.Delete(identity);
         Directory.Delete(delta, false);
+        RemoveEphemeralDirectory(control);
+    }
+    internal static void RemoveEphemeralDirectory(string control)
+    {
+        string ephemeral = Path.Combine(control, "ephemeral");
+        if (!Directory.Exists(ephemeral)) return;
+        WindowsProcessWorkspaceProvider.CheckPath(ephemeral);
+        Directory.Delete(ephemeral, recursive: true);
     }
     public async Task<SnapshotReclamation> ReleaseSnapshotAsync(WorkspaceRecord w, string control, CancellationToken ct = default)
     {

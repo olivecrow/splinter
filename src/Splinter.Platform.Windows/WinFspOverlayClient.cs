@@ -266,9 +266,11 @@ public static class WinFspOverlayClient
             await Task.Delay(100, ct);
         }
     }
-    public static async Task<JsonElement> StopAsync(OverlayServeRequest request, CancellationToken ct = default)
+    public static async Task<JsonElement> StopAsync(OverlayServeRequest request, CancellationToken ct = default,
+        bool allowRootDirectoryHandles = false)
     {
-        await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "stop.json"), new { request.Token }, ct);
+        await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(request.ControlPath, "stop.json"),
+            new { request.Token, allowRootDirectoryHandles }, ct);
         for (int i = 0; i < 150; i++)
         {
             var state = await ObserveAsync(request, ct);

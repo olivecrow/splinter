@@ -118,7 +118,7 @@ public interface ISnapshotWorkspaceBackend
     // Identical seals must prove no acknowledged overlay mutation between them,
     // including writes later reverted. Flush and observe; do not mutate source.
     Task<SnapshotDeltaSeal> SealAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
-    Task UnmountAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);
+    Task UnmountAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default, bool allowRootDirectoryHandles = false);
     Task<SnapshotJournalCompaction> CompactAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default,
         long? maxEstimatedJournalOverlapBytes = null, bool? revertBaseRanges = null);
     Task CompleteCompactionAsync(WorkspaceRecord workspace, string control, CancellationToken ct = default);

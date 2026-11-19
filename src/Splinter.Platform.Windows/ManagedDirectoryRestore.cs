@@ -24,6 +24,11 @@ internal static class ManagedDirectoryRestore
     {
         string root = state.Basis.ReceiptDirectory, planPath = Path.Combine(root, "restore-plan.json"), cursorPath = Path.Combine(root, "restore-cursor.json");
         var manifest = new OwnedDirectorySnapshotProvider(root, state.Basis.OwnerId).Read(state.Basis.Snapshot);
+        if (manifest.FastIndexPath is not null)
+        {
+            await ManagedFastLibraryRestore.ExecuteAsync(state, request, manifest, ct, boundary);
+            return;
+        }
         ResumeStoppedSourceMaintenance(request, manifest, ct, boundary);
         using var manifestItems = manifest.OpenIndex(StringComparer.OrdinalIgnoreCase);
         bool generalSideRecords = File.Exists(Path.Combine(root, "latest-restore-delta-reclaim.json")) ||
@@ -324,6 +329,10 @@ internal static class ManagedDirectoryRestore
             WorkspaceStore.EnsurePlainPath(state.Basis.Snapshot.RootPath); Directory.Delete(state.Basis.Snapshot.RootPath, true);
             boundary?.Invoke("restore.after-basis-reclaim");
         }
+        ReclaimDelta(state, request, seal, boundary);
+    }
+    internal static void ReclaimDelta(ManagedDirectoryState state, OverlayServeRequest request, SnapshotDeltaSeal seal, Action<string>? boundary)
+    {
         if (!Directory.Exists(request.DeltaPath)) return;
         string journalPath = Path.Combine(request.DeltaPath, "delta.journal"), reclaim = Path.Combine(state.Basis.ReceiptDirectory, "latest-restore-delta-reclaim.json"),
             boundedReclaim = Path.Combine(state.Basis.ReceiptDirectory, "bounded-restore-delta-reclaim.bin");

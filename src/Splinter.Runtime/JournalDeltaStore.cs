@@ -267,7 +267,12 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
         }
     }
 
-    public DeltaEntry Create(string path, bool directory, uint attributes)
+    internal void WithNamespaceLock(Action action)
+    {
+        using (EnterGate(mutation: true)) { Check(); action(); }
+    }
+    public DeltaEntry Create(string path, bool directory, uint attributes) => Create(path, directory, attributes, Guid.NewGuid());
+    internal DeltaEntry Create(string path, bool directory, uint attributes, Guid id)
     {
         using (EnterGate(mutation: true))
         {
@@ -275,7 +280,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
             if (path.Length == 0 || Lookup(path) is not null) throw new IOException("Path already exists.");
             RequireParent(path); RequireNodeCapacity();
             long now = DateTime.UtcNow.ToFileTimeUtc();
-            var entry = new DeltaEntry(Guid.NewGuid(), path, directory, 0,
+            var entry = new DeltaEntry(id, path, directory, 0,
                 pathPolicy == WorkspacePathPolicy.Windows ? directory ? attributes | 16u : attributes & ~16u : attributes,
                 now, now, now, null, 0);
             Commit(new(sequence + 1, "create", entry), []);
@@ -343,7 +348,7 @@ public sealed partial class JournalDeltaStore : IWorkspaceDeltaStore
                 using (EnterGate())
                 {
                     activeReads--;
-                    Monitor.PulseAll(gate);
+                    if (closing) Monitor.PulseAll(gate);
                 }
             }
         }

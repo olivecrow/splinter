@@ -10,6 +10,7 @@ public static class LatestJournalReclamation
     private sealed record Plan(int Version, string Root, SnapshotDeltaSeal Seal, string Objects, Dictionary<string, string> Files, bool WholeDirectory);
     public static bool IsLatest(string path) => LatestJournalStorage.IsLatest(path);
     public static bool HasIntent(string receipt) => File.Exists(receipt);
+    internal static SnapshotDeltaSeal ReadPublishedSeal(string receipt) => Read(receipt).Seal;
     private static string Hash(string path)
     {
         using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);

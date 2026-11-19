@@ -98,7 +98,7 @@ public sealed class PreparationInterruptionTests
         public Task<SnapshotWorkspaceObservation> ObserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) =>
             Task.FromResult(new SnapshotWorkspaceObservation(true, Directory.Exists(w.Path), Directory.Exists(w.Path), true, 0, 0, 0));
         public Task<SnapshotDeltaSeal> SealAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task UnmountAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task UnmountAsync(WorkspaceRecord w, string c, CancellationToken ct = default, bool allowRootDirectoryHandles = false) => throw new NotSupportedException();
         public Task<SnapshotJournalCompaction> CompactAsync(WorkspaceRecord w, string c, CancellationToken ct = default, long? maxEstimatedJournalOverlapBytes = null, bool? revertBaseRanges = null) => throw new NotSupportedException();
         public Task CompleteCompactionAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => throw new NotSupportedException();
         public Task RemoveDeltaAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => throw new NotSupportedException();

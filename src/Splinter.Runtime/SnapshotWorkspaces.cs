@@ -172,7 +172,7 @@ public sealed partial class WorkspaceCoordinator
             using (diagnostics?.Measure("release.verify-result")) await SnapshotSources.VerifyResultAsync(w, control, ct);
             if (state.Step == "release-unmount")
             {
-                using (diagnostics?.Measure("release.unmount")) await Snapshots.UnmountAsync(w, control, ct);
+                using (diagnostics?.Measure("release.unmount")) await Snapshots.UnmountAsync(w, control, ct, allowRootDirectoryHandles: w.ApplicationKind == "unity");
                 var seal = await Snapshots.SealAsync(w, control, ct);
                 if (seal != state.Result!.Seal)
                     throw new WorkspaceException("DeltaChangedAfterCollection", "Writes followed the collected result. Preserve the journal and reconcile before deletion.");
@@ -202,7 +202,7 @@ public sealed partial class WorkspaceCoordinator
             if (sources is IRetainedResultMaintenance retained)
                 using (diagnostics?.Measure("release.maintain-results")) await retained.MaintainRetainedResultsAsync(w, control, ct);
             using (diagnostics?.Measure("release.maintain-metadata"))
-                await MaintainMetadataCoreAsync(w, "release:" + (w.Results.LastOrDefault()?.Id ?? w.ResultRevision ?? w.Id), ct, force: true);
+                await MaintainMetadataCoreAsync(w, "release:" + (w.Results.LastOrDefault()?.Id ?? w.ResultRevision ?? w.Id), ct, force: false);
             using (await store.LockAsync(WorkspaceStore.Key("snapshot:" + state.Reference!.Id), ct))
             {
                 // Managed project tasks release their own reference; the

@@ -55,6 +55,7 @@ public sealed class WindowsWorkspaceDiscardProvider(ISourceDiscardProvider sourc
         try
         {
             JournalReclamation.Reclaim(delta, w.Discard.Seal, ["identity.json"], Path.Combine(control, "discard-delta-reclaim.json"));
+            NtfsSnapshotWorkspaceBackend.RemoveEphemeralDirectory(control);
         }
         catch (WorkspaceException ex) when (ex.Code.StartsWith("View", StringComparison.Ordinal))
         { throw new WorkspaceException("DiscardDeltaChanged", ex.Message); }

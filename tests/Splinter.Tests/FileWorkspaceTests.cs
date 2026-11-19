@@ -323,7 +323,7 @@ public sealed partial class FileWorkspaceTests
         }
         public Task<SnapshotDeltaSeal> SealAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         { OnSeal?.Invoke(w, ++SealCalls); if (ChangeSeal) sequence++; return Task.FromResult(new SnapshotDeltaSeal(sequence, 10, "fake-seal-" + sequence)); }
-        public Task UnmountAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
+        public Task UnmountAsync(WorkspaceRecord w, string c, CancellationToken ct = default, bool allowRootDirectoryHandles = false)
         { if (Directory.Exists(w.Path)) Directory.Delete(w.Path, true); Mounted.Remove(w.Id); Lost("unmount"); return Task.CompletedTask; }
         public Task RemoveDeltaAsync(WorkspaceRecord w, string c, CancellationToken ct = default) { Removed.Add(w.Id); Lost("remove"); return Task.CompletedTask; }
         public Task<SnapshotReclamation> ReleaseSnapshotAsync(WorkspaceRecord w, string c, CancellationToken ct = default)

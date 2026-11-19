@@ -14,6 +14,7 @@ public static class SegmentedJournalReclamation
     private sealed record Proof(string Name, long Length, byte[] Hash, string? Identity);
     private static WorkspaceException Invalid(string message = "The segmented reclamation inventory changed.") => new("ViewReceiptMismatch", message);
     public static bool HasIntent(string receipt) => File.Exists(receipt) || File.Exists(receipt + ".pending");
+    internal static SnapshotDeltaSeal ReadPublishedSeal(string receipt) => ReadHeader(receipt).Seal;
     private static bool SegmentName(string name) => name.Length == 28 && name.StartsWith("segment-", StringComparison.Ordinal) &&
         name.EndsWith(".sjr", StringComparison.Ordinal) && long.TryParse(name.AsSpan(8, 16), System.Globalization.NumberStyles.HexNumber,
             System.Globalization.CultureInfo.InvariantCulture, out long id) && id >= 0 ||

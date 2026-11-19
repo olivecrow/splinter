@@ -213,6 +213,9 @@ def log_phases(text):
         return [float(s) / divisor for s in re.findall(pattern, text)]
 
     return dict(beeSeconds=values(r"Tundra build success \(([\d.]+) seconds"),
+                compileErrors=[line.strip()[:500] for line in text.splitlines() if re.search(
+                    r"^\s*(?:## Script Compilation Error|PostProcessing failed:|\*\*\* Tundra build failed|"
+                    r"Scripts have compiler errors)|\berror CS\d{4}\s*:", line, re.I)],
                 compileSeconds=values(r"AssetDatabase: script compilation time: ([\d.]+)s"),
                 reloadSeconds=values(r"Domain Reload Profiling: ([\d.]+)ms", 1000),
                 scriptingSummaries=[dict(reloads=int(n), reloadSeconds=int(r)/1000, compileSeconds=int(c)/1000)
@@ -228,6 +231,17 @@ def log_since(path, offset=0):
     with path.open("rb") as stream:
         stream.seek(offset)
         return stream.read().decode("utf-8", errors="replace")
+
+
+def verify_native_compilation(text, exit_code, editor_version):
+    """Verify a fresh, completed batch compilation before admitting parallel Unity tasks."""
+    phases = log_phases(text)
+    version = re.search(r"^Initialize engine version:\s*(\S+)", text, re.M)
+    if (exit_code != 0 or not version or version[1] != editor_version or not phases["beeSeconds"]
+            or not phases["compileSeconds"] or phases["compileErrors"] or phases["packageIoErrors"]):
+        raise RuntimeError(f"Native Unity compilation is unverified for {editor_version} (exit {exit_code}): "
+                           f"{(phases['compileErrors'] + phases['packageIoErrors'])[:2]}")
+    return phases
 
 
 def counters(control):
@@ -286,7 +300,8 @@ def settle_new_scripts(project, process, paths, type_name, deadline, observe, in
         read_value = f't != null && t.GetProperty("{name}") != null && (int)t.GetProperty("{name}").GetValue(null) == {expected}'
     check = (f'var t=System.Type.GetType("{type_name}, Assembly-CSharp"); '
              'if(UnityEditor.EditorApplication.isCompiling || UnityEditor.EditorApplication.isUpdating) return "busy"; '
-             f'if({read_value} && !UnityEditor.EditorUtility.scriptCompilationFailed) return "loaded"; return "pending";')
+             'if(UnityEditor.EditorUtility.scriptCompilationFailed) return "failed"; '
+             f'if({read_value}) return "loaded"; return t==null ? "new-type" : "pending";')
 
     def evaluate(code):
         if process.exited():
@@ -310,12 +325,19 @@ def settle_new_scripts(project, process, paths, type_name, deadline, observe, in
             verify_files()
             observe("edit-already-loaded", type=type_name)
             return
-        if state == "pending":
+        if state == "failed":
+            raise RuntimeError("The selected Editor reported failed script compilation")
+        if state in ("new-type", "pending"):
             break
         time.sleep(min(.75, max(0, deadline-time.monotonic())))
     else:
         raise TimeoutError("Could not observe the exact Editor before requesting its script import")
-    imports = "".join("UnityEditor.AssetDatabase.ImportAsset(" + json.dumps(path) + ");" for path in sorted(files))
+    # A targeted import can create a .meta while leaving a newly added script out
+    # of Bee's source inventory. Discover the whole edit once when its type is new.
+    if state == "new-type":
+        imports = "UnityEditor.AssetDatabase.Refresh(UnityEditor.ImportAssetOptions.ForceSynchronousImport);"
+    else:
+        imports = "".join("UnityEditor.AssetDatabase.ImportAsset(" + json.dumps(path) + ");" for path in sorted(files))
     submit = (f'const string key="{key}"; if(UnityEditor.SessionState.GetString(key,"")=="") {{ '
               'UnityEditor.SessionState.SetString(key,"queued"); double at=UnityEditor.EditorApplication.timeSinceStartup+0.25; '
               'UnityEditor.EditorApplication.CallbackFunction apply=null; apply=()=>{ '
@@ -325,9 +347,13 @@ def settle_new_scripts(project, process, paths, type_name, deadline, observe, in
     # A domain reload can disconnect the command response. The request is never
     # resubmitted. Even a positive acknowledgement is insufficient to pass.
     reply = evaluate(submit)
-    observe("edit-import-request", acknowledged=reply==key, paths=sorted(files))
+    observe("edit-import-request", acknowledged=reply==key, paths=sorted(files),
+            operation="refresh" if state == "new-type" else "import")
     while time.monotonic() < deadline:
-        if evaluate(check) == "loaded":
+        state = evaluate(check)
+        if state == "failed":
+            raise RuntimeError("The selected Editor reported failed script compilation")
+        if state == "loaded":
             verify_files()
             observe("edit-loaded", type=type_name)
             return
@@ -366,6 +392,8 @@ def ready(project, process, log, deadline, observe, control=None, token=None, st
             windows = windows_for(process.pid)
             observe("startup-observation", pid=process.pid, logBytes=log.stat().st_size if log.exists() else 0,
                     lastPhase=(heartbeat or {}).get("phase"), windows=windows, phases=phases)
+            if phases["compileErrors"]:
+                raise RuntimeError("Unity compilation failed: " + str(phases["compileErrors"][:2]))
             if phases["packageIoErrors"]:
                 raise RuntimeError("Unity reported package I/O errors: " + str(phases["packageIoErrors"][:2]))
             modal = [w for w in windows if startup_dialog(w) == "blocking"]
@@ -423,8 +451,11 @@ class AbnormalEditorExit(RuntimeError):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("stage", choices=("ready", "stop", "log", "settle-edit"))
-    parser.add_argument("--control", required=True, type=Path, help="Returned workspace control directory")
+    parser.add_argument("stage", choices=("native-check", "ready", "stop", "log", "settle-edit"))
+    parser.add_argument("--control", type=Path, help="Returned workspace control directory")
+    parser.add_argument("--batch-log", type=Path, help="Fresh log of the completed native batch compilation")
+    parser.add_argument("--exit-code", type=int, help="Observed exit code of that native Editor process")
+    parser.add_argument("--editor-version", help="m_EditorVersion from the common input's ProjectVersion.txt")
     parser.add_argument("--output", required=True, type=Path, help="New JSONL evidence file")
     parser.add_argument("--estimate-seconds", type=float, help="Comparable phase estimate. Observation stops at twice this value.")
     parser.add_argument("--offset", type=int, default=0, help="First Editor log byte for log analysis")
@@ -433,6 +464,17 @@ def main():
     parser.add_argument("--int-property", help="Known public static integer property on the edited type")
     parser.add_argument("--expected-value", type=int, help="Expected compiled property value")
     args = parser.parse_args()
+    if args.stage == "native-check":
+        if not args.batch_log or args.exit_code is None or not args.editor_version:
+            parser.error("native-check requires --batch-log, --exit-code and --editor-version")
+        raw = args.batch_log.read_bytes()
+        phases = verify_native_compilation(raw.decode("utf-8-sig", errors="replace"), args.exit_code, args.editor_version)
+        with args.output.open("x", encoding="utf-8") as output:
+            print(json.dumps(dict(phase="native-compile-verified", editorVersion=args.editor_version,
+                                  exitCode=args.exit_code, logSHA256=hashlib.sha256(raw).hexdigest(), phases=phases)), file=output)
+        return
+    if not args.control:
+        parser.error(f"{args.stage} requires --control")
     workspace = read_json(args.control / "workspace.json")
     if not workspace or any(args.output.resolve().is_relative_to(root.resolve()) for root in
                             (args.control, Path(workspace["path"]), Path(workspace["projectPath"]))):

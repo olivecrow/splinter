@@ -13,6 +13,7 @@ public static class BoundedJournalReclamation
     private sealed record Plan(int Version, string Directory, SnapshotDeltaSeal Seal, Dictionary<string, FileProof> Files);
     private static WorkspaceException Conflict(string message) => new("ViewReceiptMismatch", message + " Preserve bounded journal storage.");
     public static bool HasIntent(string receipt) => File.Exists(receipt) || File.Exists(receipt + ".pending");
+    internal static SnapshotDeltaSeal ReadPublishedSeal(string receipt) => Read(receipt).Seal;
 
     public static void ReclaimDirectory(string directory, SnapshotDeltaSeal seal, string[] metadataNames, string receipt,
         Action<string>? boundary = null, Func<string, IJournalDirectoryGuard>? directoryGuardFactory = null, IJournalFilePins? filePins = null)

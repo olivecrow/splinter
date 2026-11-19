@@ -59,6 +59,24 @@ class ScriptEditTests(unittest.TestCase):
         self.assertEqual(1, unity.call_count)
         self.assertEqual(["edit-already-loaded"], self.events)
 
+    def test_missing_type_requests_one_refresh_to_discover_new_script(self):
+        replies = iter(["new-type", None, "busy", "loaded"])
+        with patch.object(workflow.subprocess, "run", side_effect=lambda args, **kwargs:
+                          subprocess.CompletedProcess(args, 0, json.dumps(next(replies)), "")) as unity, \
+             patch.object(workflow.time, "sleep"):
+            self.run_edit()
+        commands = [call.args[0][4] for call in unity.call_args_list]
+        self.assertEqual(1, sum("AssetDatabase.Refresh(" in code for code in commands))
+        self.assertFalse(any("AssetDatabase.ImportAsset(" in code for code in commands))
+        self.assertEqual(["edit-import-request", "edit-loaded"], self.events)
+
+    def test_failed_compilation_stops_before_requesting_an_import(self):
+        with patch.object(workflow.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, '"failed"', "")) as unity:
+            with self.assertRaisesRegex(RuntimeError, "failed script compilation"):
+                self.run_edit()
+        self.assertEqual(1, unity.call_count)
+        self.assertEqual([], self.events)
+
     def test_log_keeps_nested_refresh_and_compiler_scopes(self):
         phases = workflow.log_phases(
             "*** Tundra build success (12.25 seconds), 3 items updated\n"
@@ -79,6 +97,31 @@ class ScriptEditTests(unittest.TestCase):
                            lambda phase, **_: self.events.append(phase))
         self.assertEqual(2, windows.call_count)
         self.assertEqual("editor-ready", self.events[-1])
+
+    def test_compilation_failure_stops_readiness_even_when_pipeline_is_ready(self):
+        state = {"data": {"instances": [{"projectPath": str(self.project), "pid": RunningEditor.pid, "state": "ready"}]}}
+        for error in ("Assets/Maze.cs(1,2): error CS1002: ; expected",
+                      "PostProcessing failed: System.IO.FileNotFoundException: Library/Bee/fixture.pdb",
+                      "*** Tundra build failed (1.2 seconds)", "## Script Compilation Error for: ILPostProcess"):
+            with self.subTest(error=error):
+                log = self.project / "Editor.log"
+                log.write_text(error, encoding="utf-8")
+                with patch.object(workflow.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, json.dumps(state), "")), \
+                     patch.object(workflow, "windows_for", return_value=[]), self.assertRaisesRegex(RuntimeError, "compilation failed"):
+                    workflow.ready(self.project, RunningEditor(), log, time.monotonic()+5,
+                                   lambda phase, **_: self.events.append(phase))
+                self.assertNotIn("editor-ready", self.events)
+
+    def test_native_baseline_requires_matching_editor_clean_build_and_exit(self):
+        text = ("Initialize engine version: 6000.6.8f1 (revision)\n*** Tundra build success (1.2 seconds)\n"
+                "AssetDatabase: script compilation time: 1.5s\n")
+        self.assertEqual([1.2], workflow.verify_native_compilation(text, 0, "6000.6.8f1")["beeSeconds"])
+        for body, code, version in ((text, 1, "6000.6.8f1"), (text, 0, "6000.3.0f1"),
+                                    (text.splitlines()[0], 0, "6000.6.8f1"),
+                                    (text + "PostProcessing failed: missing PDB\n", 0, "6000.6.8f1"),
+                                    (text + "IOException: cannot read Library/PackageCache/test.dll\n", 0, "6000.6.8f1")):
+            with self.subTest(body=body, code=code, version=version), self.assertRaises(RuntimeError):
+                workflow.verify_native_compilation(body, code, version)
 
     def test_actionable_dialogs_still_stop_observation(self):
         self.assertEqual("blocking", workflow.startup_dialog({"kind":"#32770", "title":"Hold on", "buttons":[1, 2]}))

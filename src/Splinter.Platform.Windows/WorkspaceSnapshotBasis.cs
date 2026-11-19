@@ -38,9 +38,18 @@ public static class WorkspaceSnapshotBasis
         {
             GitObjectSnapshotProvider.ProviderName => new GitObjectSnapshotProvider(directory, owner).OpenTree(snapshot, access, health),
             PlasticRevisionSnapshotProvider.ProviderName => new PlasticRevisionSnapshotProvider(directory, owner).OpenTree(snapshot, access, new WindowsJournalFilePins()),
-            OwnedDirectorySnapshotTree.ProviderName => new OwnedDirectorySnapshotTree((ProjectDirectorySnapshotProvider.Present(directory) ? new ProjectDirectorySnapshotProvider(directory, owner).Shared(snapshot) : new OwnedDirectorySnapshotProvider(directory, owner)).Read(snapshot), snapshot),
+            OwnedDirectorySnapshotTree.ProviderName => OpenOwnedDirectory(snapshot, directory, owner),
             _ => throw new WorkspaceException("SnapshotProviderUnsupported", "Retain the unsupported immutable basis.")
         });
+    }
+    private static ISnapshotTree OpenOwnedDirectory(SnapshotReference snapshot, string directory, string owner)
+    {
+        var manifest = (ProjectDirectorySnapshotProvider.Present(directory)
+            ? new ProjectDirectorySnapshotProvider(directory, owner).Shared(snapshot)
+            : new OwnedDirectorySnapshotProvider(directory, owner)).Read(snapshot);
+        return manifest.FastIndexPath is not null
+            ? OwnedDirectorySnapshotTree.OpenLazy(manifest, snapshot)
+            : new OwnedDirectorySnapshotTree(manifest, snapshot);
     }
     public static DisposableSnapshotTree OpenCaptureTree(SnapshotReference snapshot, SnapshotReadAccess access,
         string directory, string owner, IDisposable readLease)
