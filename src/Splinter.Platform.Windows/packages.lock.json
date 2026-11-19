@@ -22,22 +22,22 @@
       "splinter.runtime": {
         "type": "Project",
         "dependencies": {
-          "Splinter.Core": "[0.1.0-dev, )"
+          "Splinter.Core": "[0.1.0-beta.1, )"
         }
       },
       "splinter.sourcecontrol.files": {
         "type": "Project",
         "dependencies": {
-          "Splinter.Core": "[0.1.0-dev, )",
-          "Splinter.Runtime": "[0.1.0-dev, )",
-          "Splinter.SourceControl.Git": "[0.1.0-dev, )"
+          "Splinter.Core": "[0.1.0-beta.1, )",
+          "Splinter.Runtime": "[0.1.0-beta.1, )",
+          "Splinter.SourceControl.Git": "[0.1.0-beta.1, )"
         }
       },
       "splinter.sourcecontrol.git": {
         "type": "Project",
         "dependencies": {
-          "Splinter.Core": "[0.1.0-dev, )",
-          "Splinter.Runtime": "[0.1.0-dev, )"
+          "Splinter.Core": "[0.1.0-beta.1, )",
+          "Splinter.Runtime": "[0.1.0-beta.1, )"
         }
       }
     }

@@ -169,20 +169,20 @@
       "splinter": {
         "type": "Project",
         "dependencies": {
-          "Splinter.Application.Unity": "[0.1.0-dev, )",
-          "Splinter.Host": "[0.1.0-dev, )",
-          "Splinter.Platform.Windows": "[0.1.0-dev, )",
-          "Splinter.Runtime": "[0.1.0-dev, )",
-          "Splinter.SourceControl.Files": "[0.1.0-dev, )",
-          "Splinter.SourceControl.Git": "[0.1.0-dev, )",
-          "Splinter.Workflows.Windows": "[0.1.0-dev, )",
+          "Splinter.Application.Unity": "[0.1.0-beta.1, )",
+          "Splinter.Host": "[0.1.0-beta.1, )",
+          "Splinter.Platform.Windows": "[0.1.0-beta.1, )",
+          "Splinter.Runtime": "[0.1.0-beta.1, )",
+          "Splinter.SourceControl.Files": "[0.1.0-beta.1, )",
+          "Splinter.SourceControl.Git": "[0.1.0-beta.1, )",
+          "Splinter.Workflows.Windows": "[0.1.0-beta.1, )",
           "System.CommandLine": "[2.0.12, )"
         }
       },
       "splinter.application.unity": {
         "type": "Project",
         "dependencies": {
-          "Splinter.Core": "[0.1.0-dev, )"
+          "Splinter.Core": "[0.1.0-beta.1, )"
         }
       },
       "splinter.core": {
@@ -191,17 +191,17 @@
       "splinter.host": {
         "type": "Project",
         "dependencies": {
-          "Splinter.Core": "[0.1.0-dev, )",
-          "Splinter.Protocol": "[0.1.0-dev, )"
+          "Splinter.Core": "[0.1.0-beta.1, )",
+          "Splinter.Protocol": "[0.1.0-beta.1, )"
         }
       },
       "splinter.platform.windows": {
         "type": "Project",
         "dependencies": {
-          "Splinter.Core": "[0.1.0-dev, )",
-          "Splinter.Runtime": "[0.1.0-dev, )",
-          "Splinter.SourceControl.Files": "[0.1.0-dev, )",
-          "Splinter.SourceControl.Git": "[0.1.0-dev, )",
+          "Splinter.Core": "[0.1.0-beta.1, )",
+          "Splinter.Runtime": "[0.1.0-beta.1, )",
+          "Splinter.SourceControl.Files": "[0.1.0-beta.1, )",
+          "Splinter.SourceControl.Git": "[0.1.0-beta.1, )",
           "WinFsp.Net": "[2.2.26215, )"
         }
       },
@@ -209,37 +209,37 @@
         "type": "Project",
         "dependencies": {
           "JsonSchema.Net": "[9.4.0, )",
-          "Splinter.Core": "[0.1.0-dev, )"
+          "Splinter.Core": "[0.1.0-beta.1, )"
         }
       },
       "splinter.runtime": {
         "type": "Project",
         "dependencies": {
-          "Splinter.Core": "[0.1.0-dev, )"
+          "Splinter.Core": "[0.1.0-beta.1, )"
         }
       },
       "splinter.sourcecontrol.files": {
         "type": "Project",
         "dependencies": {
-          "Splinter.Core": "[0.1.0-dev, )",
-          "Splinter.Runtime": "[0.1.0-dev, )",
-          "Splinter.SourceControl.Git": "[0.1.0-dev, )"
+          "Splinter.Core": "[0.1.0-beta.1, )",
+          "Splinter.Runtime": "[0.1.0-beta.1, )",
+          "Splinter.SourceControl.Git": "[0.1.0-beta.1, )"
         }
       },
       "splinter.sourcecontrol.git": {
         "type": "Project",
         "dependencies": {
-          "Splinter.Core": "[0.1.0-dev, )",
-          "Splinter.Runtime": "[0.1.0-dev, )"
+          "Splinter.Core": "[0.1.0-beta.1, )",
+          "Splinter.Runtime": "[0.1.0-beta.1, )"
         }
       },
       "splinter.workflows.windows": {
         "type": "Project",
         "dependencies": {
-          "Splinter.Application.Unity": "[0.1.0-dev, )",
-          "Splinter.Platform.Windows": "[0.1.0-dev, )",
-          "Splinter.Runtime": "[0.1.0-dev, )",
-          "Splinter.SourceControl.Git": "[0.1.0-dev, )"
+          "Splinter.Application.Unity": "[0.1.0-beta.1, )",
+          "Splinter.Platform.Windows": "[0.1.0-beta.1, )",
+          "Splinter.Runtime": "[0.1.0-beta.1, )",
+          "Splinter.SourceControl.Git": "[0.1.0-beta.1, )"
         }
       },
       "JsonSchema.Net": {

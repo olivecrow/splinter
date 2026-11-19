@@ -97,7 +97,7 @@ Next steps: [Setup & completion guide](docs/agent-start.md) · [Unity Editor wor
 
 ## Status and scope
 
-Splinter is a **Windows/NTFS research alpha**. Current validation covers specific small workloads; full large-project lifecycles, general memory and throughput gains, and OS/power-loss durability remain outside current qualification.
+Splinter is a **Windows/NTFS beta** (research pre-release). Current validation covers specific small workloads; full large-project lifecycles, general memory and throughput gains, and OS/power-loss durability remain outside current qualification.
 
 - Each running Unity Editor still carries its own memory footprint and per-workspace import cost.
 - Workspace isolation covers project storage and owned process/resource lifetimes—it is not an OS security sandbox.
