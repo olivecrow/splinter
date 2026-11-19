@@ -42,6 +42,8 @@
 
 Splinter는 불변 **프로젝트 기준본(basis)** 과 **작업별 변경 저장소(delta store)** 를 결합해 **WinFsp** 기반의 단일 쓰기 가능 디렉터리 트리로 제공합니다. Git/Plastic 기반 Unity 작업공간에서는 소스 경로(`Assets`, `Packages`, `ProjectSettings` 등)에 내구성 있는 범위 저널을 사용하고, 스냅샷에 추적되지 않는 생성 경로(`Library`, `Temp`, `Logs` 등)에는 경량 임시 오버레이를 적용해 격리를 유지하면서도 일회성 빌드 산출물의 불필요한 쓰기 부하를 줄입니다.
 
+내부적으로 `Splinter.Core`와 `Splinter.Runtime`은 저장소 계층과 애플리케이션별 도구를 분리해 설계되어 있습니다. 프로젝트 기준본(Git·Plastic·일반 폴더), 소스용/임시 산출물용 분할 변경 저장소, OS 마운트·프로세스 백엔드, 그리고 Unity 같은 프로젝트 전용 모듈(`Splinter.Application.Unity`)이 명시적인 포트(인터페이스) 뒤에 나뉘어 있어 저장소 구성과 싱글 인스턴스 애플리케이션 어댑터를 독립적으로 조합·확장할 수 있습니다([기술 구조](docs/ko/foundation.md), [확장 경계](docs/extensibility-boundaries.md) 참고).
+
 1. **생성 또는 재개** — 고정된 `--key`로 작업공간을 만들고 반환된 `data.workspace.path`에서 편집과 명령을 실행합니다. Unity 프로젝트는 필요할 때만 해당 작업공간 전용 Editor를 기동합니다.
 2. **체크포인트와 공유** — 작업이나 Editor를 멈추지 않고 언제든 불변 체크포인트를 남길 수 있습니다. 다른 작업공간에서 해당 체크포인트의 [전체 변경 또는 선택한 경로를 가져올 수 있으며](docs/workspace-import.md), 컴파일·Play Mode·테스트·빌드는 기존 도구를 그대로 사용합니다.
 3. **명시적 마무리** — 충돌 검사를 거친 계획으로 검토된 결과를 원본에 반영하거나, 독립 결과를 보존한 채 작업공간 자원만 회수하거나, 작업을 명시적으로 폐기합니다.
@@ -99,6 +101,7 @@ pwsh ./scripts/splinter.ps1 workspace ensure --project $project --home $workspac
 
 Splinter는 **Windows/NTFS용 베타(연구 프리릴리스)** 단계입니다. 대규모 프로젝트의 전체 작업 흐름 성능과 OS 장애 또는 전원 손실 후 복구는 아직 검증되지 않았습니다.
 
+- **Unity 및 Windows에 결합된 외부 계층:** 코어는 다양한 싱글 인스턴스 프로젝트와 저장소를 모듈식으로 갈아끼울 수 있도록 분리되어 있으나, 현재까지의 작업과 검증은 Windows/NTFS 환경의 Unity에 집중되어 있습니다. 현재 실행 어댑터는 `unity`와 `none`(및 WinFsp/Windows 백엔드)만 구현되어 있으며, CLI 명령 체계(`unity start/stop`, `library prepare/restore`), 단일 최상위 생성 폴더(`Library`) 마운트 제약, 허용 목록 및 일부 캐시·프로세스 정리 경로는 아직 Unity에 강하게 묶여 있습니다.
 - 실행 중인 각 Unity Editor의 메모리 사용량과 작업공간별 임포트 비용은 여전히 별도로 발생합니다.
 - 작업공간 격리는 프로젝트 저장소와 소유 프로세스·자원 수명주기에 한정되며, OS 수준의 보안 샌드박스가 아닙니다.
 

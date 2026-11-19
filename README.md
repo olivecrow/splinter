@@ -42,6 +42,8 @@ Even with workspace setup, three Editor launches, Library restoration, and final
 
 Splinter pairs an immutable **project basis** with a **task-private delta store** and exposes both as one writable directory tree over **WinFsp**. For Git and Plastic Unity workspaces, source paths (`Assets`, `Packages`, `ProjectSettings`, etc.) use a durable range journal while untracked generated paths (`Library`, `Temp`, `Logs`, etc.) use a lightweight ephemeral overlay—keeping isolation intact without redundant durability overhead on disposable build artifacts.
 
+Under the hood, `Splinter.Core` and `Splinter.Runtime` separate storage from application-specific tooling: project bases (Git, Plastic, or plain folders), partitioned source and ephemeral delta stores, OS mount/process backends, and application modules (such as `Splinter.Application.Unity`) sit behind explicit ports so storage backends and single-instance project adapters can be composed independently. See [Technical architecture](docs/foundation.md) and [Extension boundaries](docs/extensibility-boundaries.md).
+
 1. **Create or resume** — Create a workspace with a stable `--key` and perform all edits and commands inside the returned `data.workspace.path`. Start a dedicated Unity Editor for that workspace only when needed.
 2. **Checkpoint and share** — Capture immutable checkpoints at any point without stopping your work or Editor. Another workspace can [import all changes or selected paths](docs/workspace-import.md) from a checkpoint, while each task compiles, runs Play Mode, tests, and builds with its existing tools.
 3. **Finish explicitly** — Apply a reviewed, conflict-checked result to the original project, release the workspace while keeping its independent results, or explicitly discard the task.
@@ -99,6 +101,7 @@ Next steps: [Setup & completion guide](docs/agent-start.md) · [Unity Editor wor
 
 Splinter is a **Windows/NTFS beta** (research pre-release). Large-project lifecycle performance and recovery after OS failure or power loss remain unverified.
 
+- **Unity- and Windows-coupled outer layers:** Although the core separates storage and application ports for broader single-instance workflows, work so far has focused on Unity on Windows/NTFS. Only `unity` and `none` application modes (and WinFsp/Windows backends) are implemented today, and parts of the CLI surface (`unity start/stop`, `library prepare/restore`), single top-level generated-directory grafting (`Library`), allowlists, and fast-cache/process-cleanup paths remain tightly coupled to Unity.
 - Each running Unity Editor still carries its own memory footprint and per-workspace import cost.
 - Workspace isolation covers project storage and owned process/resource lifetimes—it is not an OS security sandbox.
 
