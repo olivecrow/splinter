@@ -12,7 +12,7 @@ Fix source/application/storage and basis in the initial request, then read that 
 | --- | --- | --- |
 | `git-snapshot`, source git | A clean supported repository at the [selected commit](git-project-basis.md) and WinFsp. | Only committed project input is shared. A warm Library is an explicit separate basis. |
 | `plastic-snapshot`, source plastic | Uses fixed changeset/revision under the [Plastic basis](plastic-project-basis.md), standard-user Plastic client access, and WinFsp. | Check basis verification and [full/selected original application](repeated-original-apply.md). Original application requires fixed result/plan/intent and either stopped reservation or exact live-original cooperation, without changing server history. |
-| `project-snapshot`, source none | Uses the explicitly authorized managed mount of the original under the [project basis](plain-project-basis.md). Requires WinFsp. | See [validation scope](verification/README.md) for the tested inputs. Authorization to convert Library alone does not authorize a whole-original mount. |
+| `project-snapshot`, source none | Uses the explicitly authorized managed mount of the original under the [project basis](plain-project-basis.md). Requires WinFsp. | Authorization to convert Library alone does not authorize a whole-original mount. |
 
 Git/Plastic original Library reuse requires authorization, normal original-Editor shutdown, and a returned basis id from the [separate Library conversion](git-library-reference.md), fixed in `--library-basis`. `project-snapshot` uses `project prepare --application none|unity` to move source/Library without copying on the same NTFS volume and provide a writable view at the original path. Fix returned basis id in `workspace ensure --source none --storage project-snapshot --project-basis <id>` with the same application/home. After task reclamation and all dependents/readers end, explicitly use `project restore` to restore an ordinary NTFS original.
 
@@ -22,7 +22,7 @@ The prerequisites and creation example below concern `source=git`, `application=
 
 | Item | Conditions to check |
 | --- | --- |
-| Product | Existing development checkout's `scripts/splinter.ps1` and Release build. If absent, the agent prepares it with `pwsh ./scripts/build.ps1`. the [.NET SDK pinned in global.json](../global.json), Git, and PowerShell 7.2 or later. |
+| Product | `scripts/splinter.ps1` and the [CLI Release build](../README.md#1-build-the-cli-and-inspect-schemas). Requires the [.NET SDK pinned in global.json](../global.json), Git, and PowerShell 7.2 or later. |
 | Original | Clean Git repository root on existing NTFS, with an internal `.git` directory and original HEAD matching requested base. Immediately before capture, Unity changes must be saved and import/compile/Play inactive. |
 | Input | Dirty/staged/untracked, submodule/symlink, LFS/filter/working-tree-encoding are rejected. ADS/hardlink/reparse/EFS/compressed/sparse input and individual ACL semantics are unsupported. See [NTFS input boundaries](ntfs-workspaces.md#inputs-and-privilege-boundaries). |
 | System | Installed WinFsp. Use a standard user for workspace operations. |
@@ -95,4 +95,4 @@ Read `schema workspace.read` and `schema workspace.maintain`. `status` returns s
 | reclaim-pending, discard-reclaim-pending | Distinguish logical completion from pending physical reclamation. Only same-task/home release or same discard-intent retries are allowed; no other-snapshot sweeps. |
 | released, discarded | Completion confirms absent actual mount/Git/delta/exact snapshot and zero owned resources. Records/logs/independent results remain. Unknown is not 0; new edits use a new task key. |
 
-If an acknowledged source write is missing or the original or a peer changes unexpectedly, stop the affected operation. Preserve the workspace and its logs for diagnosis. Inspect the exact process, handle and seal observations before retrying reclamation. [Qualification limits](verification/README.md)
+If an acknowledged source write is missing or the original or a peer changes unexpectedly, stop the affected operation. Preserve the workspace and its logs for diagnosis. Inspect the exact process, handle and seal observations before retrying reclamation.

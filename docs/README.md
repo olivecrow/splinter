@@ -1,6 +1,6 @@
 # Documentation map
 
-Start with the [Unity maze benchmark](verification/parallel-workspace-performance.md) for the measured comparison with Unity Agent Coordination, the timing boundaries and the work each agent could perform independently. The [validation guide](verification/README.md) describes the default regression suite and outstanding qualification.
+The [Unity maze benchmark](verification/parallel-workspace-performance.md) compares Splinter with Unity Agent Coordination and records the timing boundaries and the work each agent could perform independently.
 
 ## Start and operate
 
@@ -19,10 +19,11 @@ Start with the [Unity maze benchmark](verification/parallel-workspace-performanc
 | Lifecycle | [NTFS workspaces](ntfs-workspaces.md), [processes and resources](storage-and-resources.md) |
 | Live storage | [Source and generated partitions](scalable-storage.md), [raw writes and flush](raw-write-batching.md), [compaction and base reversion](journal-base-reversion.md) |
 
-## Development and qualification
+## For contributors
 
 | Area | Guides |
 | --- | --- |
+| Verification | [Regression suite and remaining qualification](verification/README.md) |
 | Tools and views | [Development CLI](development-cli.md), [view workflow](view-workflow.md), [source verification](source-verification.md), [Unity render fixture](unity-render-qualification.md) |
 | Recovery checks | [Journal](journal-recovery.md), [kernel](kernel-recovery.md), [product writes](product-write-recovery.md) |
 | Component probes | [Write profiling](write-profiling.md), [replay profiling](replay-profiling.md), [bounded journal probe](plans/structural-throughput-prototypes.md), [bounded journal](bounded-journal.md), [latest-state journal](latest-only-journal.md) |

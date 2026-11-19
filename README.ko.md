@@ -71,7 +71,7 @@ Git과 Plastic 작업공간에는 별도로 [준비한 Unity `Library` 기준본
 Splinter 소스 체크아웃 루트에서 실행합니다.
 
 ```powershell
-pwsh ./scripts/build.ps1
+dotnet build ./src/Splinter.Cli/Splinter.Cli.csproj -c Release -m:1 --disable-build-servers -p:RestoreLockedMode=true --packages ./.local/nuget/packages
 pwsh ./scripts/splinter.ps1 capabilities
 pwsh ./scripts/splinter.ps1 schema workspace.ensure
 ```
@@ -97,12 +97,10 @@ pwsh ./scripts/splinter.ps1 workspace ensure --project $project --home $workspac
 
 ## 현재 상태와 범위
 
-Splinter는 **Windows/NTFS용 베타(연구 프리릴리스)** 단계입니다. 현재 검증은 특정 소규모 워크로드를 중심으로 수행되었으며, 대규모 프로젝트 전체 수명주기, 일반적인 메모리·처리량 개선 보장, OS 및 전원 장애 시 내구성은 아직 검증 범위 밖입니다.
+Splinter는 **Windows/NTFS용 베타(연구 프리릴리스)** 단계입니다. 대규모 프로젝트의 전체 작업 흐름 성능과 OS 장애 또는 전원 손실 후 복구는 아직 검증되지 않았습니다.
 
 - 실행 중인 각 Unity Editor의 메모리 사용량과 작업공간별 임포트 비용은 여전히 별도로 발생합니다.
 - 작업공간 격리는 프로젝트 저장소와 소유 프로세스·자원 수명주기에 한정되며, OS 수준의 보안 샌드박스가 아닙니다.
-
-기본 회귀 테스트, 측정 조건, 남아 있는 검증 항목은 [검증 범위](docs/verification/README.md)에서 확인할 수 있습니다.
 
 ## 문서
 
@@ -112,8 +110,7 @@ Splinter는 **Windows/NTFS용 베타(연구 프리릴리스)** 단계입니다. 
 | [에이전트 시작 안내](docs/agent-start.md) | 사전 요구사항, 소스별 진입 경로, 전체 작업 흐름 |
 | [에이전트 CLI 스킬](skills/splinter/SKILL.md) | AI 에이전트용 명령 탐색, 작업 스케줄링 및 인계 규칙 |
 | [기술 구조](docs/ko/foundation.md) | 구성요소, 저장 형식, 소유권 경계 설명 |
-| [제품 요구사항](plan.html) | 제품 범위, 수명주기 계약, 수용 기준, 검증 정책 |
-| [검증 범위](docs/verification/README.md) | 자동화 검증, 벤치마크 경계, 미완료 자격 검증 항목 |
+| [제품 요구사항](plan.html) | 제품 범위, 수명주기 계약, 수용 기준 |
 
 ## 라이선스 및 고지
 

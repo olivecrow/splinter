@@ -2,7 +2,7 @@
 
 [Product storage](../scalable-storage.md) uses task v4, managed basis v3, segmented overlay v3 and SPM2 metadata pages of up to 64 KiB. Fixed capture and publication bind logical state to physical backing and independent result references. These gates qualify that implementation on the declared input.
 
-Record the exact builds, workload, source mode, input sizes, time estimates, deadlines and safe stop conditions before a run. Compare complete lifecycles including preparation, capture, original publication and reclamation. Measure logical bytes, physical allocation, peak and retained process memory, handles, and time by phase. Use a fixed work order and report any setup outside the timing window.
+Record the exact builds, workload, source mode, and input sizes before a run. Compare complete lifecycles including preparation, capture, original publication and reclamation. Measure logical bytes, physical allocation, peak and retained process memory, handles, and time by phase. Use a fixed work order and report any setup outside the timing window.
 
 The native 100,000-entry lifecycle, 17 GiB workload, repeated cost comparison and OS-failure boundaries need separate qualification. Preserve retained fixtures and their ownership state until a specifically scoped run. The default regression and small Unity maze measure different scopes. [Validation status](../verification/README.md)
 

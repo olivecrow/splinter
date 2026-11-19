@@ -1,6 +1,6 @@
 # Technical architecture
 
-[한국어](ko/foundation.md) · [Documentation map](README.md) · [Validation limits](verification/README.md)
+[한국어](ko/foundation.md) · [Documentation map](README.md)
 
 Splinter exposes a writable NTFS/WinFsp project tree from an immutable project basis and task-private changed byte ranges. The original stays editable. Creating a workspace does not copy the whole project, hydrate files on read or copy up whole files. Workspace storage isolation is not an OS security sandbox.
 
@@ -66,4 +66,4 @@ Library restoration resumes existing intent first. Fast-indexed Unity `Library` 
 
 Splinter owns returned project identity and its Editor/provider/resource lifetime. Windows process groups track and clean up workspace descendants on root exit while omitting `KILL_ON_JOB_CLOSE` and excluding the machine-shared `Unity.Licensing.Client` process from termination (verifying job membership and image name on the same handle) so parallel Unity Editors can launch and exit independently in any order; explicit `release` and `discard` of Unity task mounts allow unmount after a 750ms grace period when only root-directory CWD handles remain (`compact`, `library restore`, and views still require zero open handles). Agents and user-installed tools own editing, target selection, connection, refresh, compilation, Play/Test/build, capture and acceptance. Match every returned project/PID to the workspace; a missing tool-list entry is not proof of Editor absence. Do not retry writes solely because of a timeout or pin ports across reload.
 
-The supported workflow is create/resume → work → checkpoint → optional explicit publication → release/discard. Release preserves independent results; discard is a separate explicit request. Conversation/Editor exit, lease expiry, timeout and disk pressure do not authorize integration or deletion. [Validation scope](verification/README.md) distinguishes current behavior from pending large-input, whole-lifecycle, RAM and OS-failure qualification.
+The supported workflow is create/resume → work → checkpoint → optional explicit publication → release/discard. Release preserves independent results; discard is a separate explicit request. Conversation/Editor exit, lease expiry, timeout and disk pressure do not authorize integration or deletion.

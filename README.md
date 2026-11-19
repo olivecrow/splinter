@@ -71,7 +71,7 @@ Git and Plastic workspaces can also attach a separately [prepared Unity `Library
 From a source checkout of Splinter:
 
 ```powershell
-pwsh ./scripts/build.ps1
+dotnet build ./src/Splinter.Cli/Splinter.Cli.csproj -c Release -m:1 --disable-build-servers -p:RestoreLockedMode=true --packages ./.local/nuget/packages
 pwsh ./scripts/splinter.ps1 capabilities
 pwsh ./scripts/splinter.ps1 schema workspace.ensure
 ```
@@ -97,12 +97,10 @@ Next steps: [Setup & completion guide](docs/agent-start.md) · [Unity Editor wor
 
 ## Status and scope
 
-Splinter is a **Windows/NTFS beta** (research pre-release). Current validation covers specific small workloads; full large-project lifecycles, general memory and throughput gains, and OS/power-loss durability remain outside current qualification.
+Splinter is a **Windows/NTFS beta** (research pre-release). Large-project lifecycle performance and recovery after OS failure or power loss remain unverified.
 
 - Each running Unity Editor still carries its own memory footprint and per-workspace import cost.
 - Workspace isolation covers project storage and owned process/resource lifetimes—it is not an OS security sandbox.
-
-See [Validation scope](docs/verification/README.md) for the default regression suite, measured runs, and open qualification items.
 
 ## Documentation
 
@@ -112,8 +110,7 @@ See [Validation scope](docs/verification/README.md) for the default regression s
 | [Agent start guide](docs/agent-start.md) | Prerequisites, source paths, and end-to-end workspace workflows |
 | [Agent CLI skill](skills/splinter/SKILL.md) | Command discovery, scheduling, and handoff rules for AI agents |
 | [Technical architecture](docs/foundation.md) | Component structure, storage formats, and ownership boundaries |
-| [Product requirements](plan.html) | Product scope, lifecycle contracts, acceptance criteria, and verification policy |
-| [Validation scope](docs/verification/README.md) | Automated checks, benchmark boundaries, and remaining qualification |
+| [Product requirements](plan.html) | Product scope, lifecycle contracts, and acceptance criteria |
 
 ## License and attributions
 

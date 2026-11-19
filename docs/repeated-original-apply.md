@@ -65,8 +65,6 @@ Auto-refresh deferral does not block explicit `Refresh`, scene watchers or exter
 
 Save the task, normally stop **only its owned Editor**, capture with a new explicit request key using the same generation engine, and publish that fixed result as above. This includes source writes made during normal shutdown. Keep original/peer Editors running. Then explicitly `workspace release --id <task> --home <home>` to preserve final source, seal and reclaim the owned resources. `checkpoint --release` combines normal stop, the same capture and preservation/reclamation; it does not publish to the original. Release alone does not authorize integration. Original shutdown and final project/Library restore are separate, explicitly authorized cleanup after all dependents are reclaimed.
 
-Native workload and fault coverage are scoped to the tested inputs. [Validation limits](verification/README.md)
-
 ## Implementation ownership
 
 | Boundary | Code |

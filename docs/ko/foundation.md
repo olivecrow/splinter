@@ -65,4 +65,4 @@ Library 복원은 기존 intent를 먼저 재개합니다. 빠른 인덱스 기�
 
 Splinter는 반환 프로젝트 identity와 소유 Editor/provider/resource 수명을 관리합니다. Windows 프로세스 그룹은 루트 종료 시 작업공간 하위 프로세스를 정리하되 `KILL_ON_JOB_CLOSE`를 설정하지 않고(동일 핸들에서 job 소속과 이미지 이름을 확인해) 머신 공용 `Unity.Licensing.Client`를 종료 대상에서 제외하여 여러 Unity Editor가 병렬 실행 및 임의 순서로 독립 종료할 수 있게 합니다. Unity 작업 마운트의 명시적 `release`·`discard`에 한해 루트 디렉터리 CWD 핸들만 남은 경우 750ms 유예 후 정상 언마운트를 허용합니다(`compact`·`library restore`·view는 열린 핸들 0개를 유지합니다). 에이전트와 기존 도구는 편집·대상 선택·연결·refresh·컴파일·Play/Test/build·캡처·합격 판단을 담당합니다. 매 응답의 project/PID를 작업공간과 대조하며 도구 목록 누락을 Editor 부재로 판단하지 않습니다. timeout만으로 쓰기를 반복하거나 reload 뒤 port를 고정하지 않습니다.
 
-생성/재개 → 작업 → checkpoint → 선택적 명시 반영 → release/discard가 기본 흐름입니다. release는 독립 결과를 보존하고 discard는 별도 명시 요청입니다. 대화/Editor 종료·임대 만료·시간 초과·디스크 압박은 통합/삭제 승인이 아닙니다. 대형 입력·전체 수명주기·RAM·OS 장애 자격은 [영문 검증 안내](../verification/README.md)의 미완료 경계를 따릅니다.
+생성/재개 → 작업 → checkpoint → 선택적 명시 반영 → release/discard가 기본 흐름입니다. release는 독립 결과를 보존하고 discard는 별도 명시 요청입니다. 대화/Editor 종료·임대 만료·시간 초과·디스크 압박은 통합/삭제 승인이 아닙니다.

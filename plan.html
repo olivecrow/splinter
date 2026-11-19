@@ -20,7 +20,7 @@
 <p class="meta">Windows / NTFS · Local workspaces for parallel development</p>
 <h1>Splinter product requirements</h1>
 <p>Splinter gives a development task its own project path and, when needed, its own Unity Editor. A task can continue across conversations using the same identity. Agents use their existing tools to edit and validate work.</p>
-<nav aria-label="Product plan contents"><a href="#scope">Product scope</a><a href="#flow">Usage flow</a><a href="#next">Remaining work</a><a href="#acceptance">Acceptance criteria</a><a href="#verification">Verification policy</a></nav>
+<nav aria-label="Product plan contents"><a href="#scope">Product scope</a><a href="#flow">Usage flow</a><a href="#next">Remaining work</a><a href="#acceptance">Acceptance criteria</a></nav>
 
 <h2 id="scope">1. Product scope</h2>
 <table><thead><tr><th>Requirement</th><th>Product responsibility</th></tr></thead><tbody>
@@ -42,17 +42,10 @@
 
 <h2 id="next">3. Remaining work</h2>
 <p>Prioritize physical storage cost, then memory cost, then parallel workflow stability. Assess preparation, editing, validation, and completion together. Address demonstrated bottlenecks first using bounded reproductions.</p>
-<p>Native scale and fault qualification remain open for SCAL-01–08. Large lifecycle costs, peak resource usage, and OS-failure behavior require separate evidence. Retained large fixtures require an explicitly scoped follow-up. <a href="docs/plans/scalable-storage.md">SCAL plan</a> · <a href="docs/verification/README.md">Validation scope</a></p>
+<p>Large-project lifecycle costs, peak resource usage, and OS-failure behavior still need evaluation. <a href="docs/plans/scalable-storage.md">Storage plan</a></p>
 
 <h2 id="acceptance">4. Acceptance criteria</h2>
 <p>Two tasks can independently edit and validate work on the same Unity project. Each task resumes with the same identity and changes. Preserving or discarding one task leaves the original and peer intact. Guarded application preserves conflicting changes for explicit resolution. Report the time and resource costs for the measured conditions. The <a href="docs/verification/parallel-workspace-performance.md">Unity maze benchmark</a> measures three independent Editors against queued access to one shared Editor.</p>
 
-<h2 id="verification">5. Verification policy</h2>
-<ul>
-<li>Run locked restore, Release compilation, and the default automated suite through <code>pwsh ./scripts/build.ps1</code>. Keep schemas, fakes, and conformance tests aligned with contract changes.</li>
-<li>Use native checks for changed side-effect boundaries and reproduced defects. Keep platform, input, failure, and performance qualification tied to the cases that actually ran.</li>
-<li>Estimate each phase before execution, stop safely at twice its estimate, and preserve incomplete or unknown state. Block affected operations when evidence shows acknowledged-write loss or damage to the original or peers.</li>
-<li>Measure per-task changes, shared bases and Library, results, temporary files, and resource peaks as separate costs. Report unknown quantities explicitly.</li>
-</ul>
 <p class="meta"><a href="docs/README.md">Feature contracts</a> · <a href="AGENTS.md">Contributor instructions</a></p>
 </main></body></html>
