@@ -27,8 +27,7 @@ internal static class Program
             await WindowsProcessWorkspaceProvider.WriteAsync(Path.Combine(control, "launch-receipt.json"), lease);
             suspended.Resume();
             await root.WaitForExitAsync();
-            // Unity has completed its own graceful exit. Any surviving members
-            // belong to this exact group; shared external/original processes do not.
+            // Record the root's exit code independently of cleanup of its own descendants.
             for (int attempt = 0; attempt < 20 && job.ActiveCount != 0; attempt++) await Task.Delay(100);
             if (job.ActiveCount != 0) job.TerminateRemainder();
             for (int attempt = 0; attempt < 100 && job.ActiveCount != 0; attempt++) await Task.Delay(100);

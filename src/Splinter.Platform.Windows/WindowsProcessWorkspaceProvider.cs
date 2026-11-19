@@ -40,10 +40,11 @@ public sealed class WindowsProcessWorkspaceProvider(string? runnerCache = null) 
         var resources = job?.Observe(lease) ?? new ProcessResources(true, false, 0, 0, 0);
         if (job is null && WindowsProcessGroup.IdentityAlive(lease.ProcessId, lease.StartTimeUtcTicks))
             throw new WorkspaceException("ProcessOwnershipUnknown", "Editor is alive without its owning group.");
-        if (job is null && !keeper)
+        if (!keeper && !resources.RootRunning && resources.ActiveProcesses == 0)
         {
             var proof = group.ControlPath is null ? null : await ReadAsync<ExitProof>(Path.Combine(group.ControlPath, "process-exit.json"), ct);
-            resources = resources with { OwnershipVerified = proof?.Token == lease.Token && proof.ActiveJobProcesses == 0 };
+            bool verified = proof is { ActiveJobProcesses: 0, RootExitCode: not null } && proof.Token == lease.Token;
+            resources = resources with { OwnershipVerified = verified, RootExitCode = verified ? proof!.RootExitCode : null };
         }
         if (keeper)
         {
@@ -58,14 +59,14 @@ public sealed class WindowsProcessWorkspaceProvider(string? runnerCache = null) 
         }
         return resources;
     }
-    public async Task WaitForExitAsync(ApplicationLease lease, CancellationToken ct = default)
+    public async Task<int> WaitForExitAsync(ApplicationLease lease, CancellationToken ct = default)
     {
         if (lease.Group is null) throw new WorkspaceException("ProcessOwnershipUnknown", "The launch has no owned process group. Preserve its processes until ownership can be proven.");
         for (int attempt = 0; attempt < 120; attempt++)
         {
             var state = await ObserveAsync(lease, ct);
             if (!state.OwnershipVerified) throw new WorkspaceException("ProcessOwnershipUnknown", "Supervisor exit has no cleanup proof. Preserve the workspace for recovery.");
-            if (state.ActiveProcesses == 0) return;
+            if (!state.RootRunning && state.ActiveProcesses == 0 && state.RootExitCode is int code) return code;
             await Task.Delay(100, ct);
         }
         throw new WorkspaceException("ProcessCleanupIncomplete", "Owned processes remain. Preserve the workspace and retry status/stop.");
@@ -212,5 +213,5 @@ public sealed class WindowsProcessWorkspaceProvider(string? runnerCache = null) 
                 throw new WorkspaceException("UnsafePath", "Reparse points are not supported: " + p);
     }
     internal sealed record LaunchError(string Token, string Message);
-    private sealed record ExitProof(string Token, int ActiveJobProcesses);
+    private sealed record ExitProof(string Token, int? ActiveJobProcesses, int? RootExitCode);
 }

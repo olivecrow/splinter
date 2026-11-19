@@ -313,10 +313,14 @@ public sealed partial class FileWorkspaceTests
                 File.SetAttributes(path, (FileAttributes)entry.Attributes);
             }
         }
-        public Task<SnapshotWorkspaceObservation> ObserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default) => Task.FromResult(
-            new SnapshotWorkspaceObservation(!Released.Contains(w.Id), Mounted.Contains(w.Id), Mounted.Contains(w.Id), true, 0, 0, 0,
-                SnapshotStorage: w.Snapshot?.Reference is { } r ? new SnapshotObservation(r.Id, !Released.Contains(w.Id), null, null, null) { ReadAccess = new(r.Id, r.RootPath, "fake-verified") } : null,
-                DeltaPresent: !Removed.Contains(w.Id)));
+        public Task<SnapshotWorkspaceObservation> ObserveAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
+        {
+            bool available = !Released.Contains(w.Id), mounted = Mounted.Contains(w.Id);
+            var storage = w.Snapshot?.Reference is { } r ? new SnapshotObservation(r.Id, available, null, null, null)
+                { ReadAccess = available ? new(r.Id, r.RootPath, "fake-verified") : null } : null;
+            return Task.FromResult(new SnapshotWorkspaceObservation(available, mounted, mounted, true, 0, 0, 0,
+                SnapshotStorage: storage, DeltaPresent: !Removed.Contains(w.Id)));
+        }
         public Task<SnapshotDeltaSeal> SealAsync(WorkspaceRecord w, string c, CancellationToken ct = default)
         { OnSeal?.Invoke(w, ++SealCalls); if (ChangeSeal) sequence++; return Task.FromResult(new SnapshotDeltaSeal(sequence, 10, "fake-seal-" + sequence)); }
         public Task UnmountAsync(WorkspaceRecord w, string c, CancellationToken ct = default)

@@ -145,6 +145,8 @@ public sealed class UnityWorkspaceProviderTests
         Assert.True(root.GetProperty("importingBlocked").GetBoolean());
         Assert.Contains("Stop Play", root.GetProperty("playRefusal").GetString());
         Assert.Equal("Unsaved scene: Assets/Unsaved.unity", root.GetProperty("sceneRefusal").GetString());
+        Assert.Contains("main window", root.GetProperty("windowRefusal").GetString());
+        Assert.Equal(3, root.GetProperty("closeRequests").GetInt32());
     }
 
     [Fact]

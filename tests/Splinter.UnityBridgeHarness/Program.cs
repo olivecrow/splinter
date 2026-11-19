@@ -34,6 +34,7 @@ namespace Splinter.UnityBridgeHarness
             UnityEngine.Application.dataPath = Path.Combine(control, "Assets");
             RuntimeHelpers.RunClassConstructor(typeof(Splinter.Editor.WorkspaceBridge).TypeHandle);
             var observations = new List<JsonElement>();
+            int requestNumber = 0;
             EditorApplication.Advance(); Capture();
             EditorApplication.isCompiling = true;
             EditorApplication.Advance(); Capture();
@@ -55,10 +56,23 @@ namespace Splinter.UnityBridgeHarness
             string playRefusal = Refusal();
             EditorApplication.isPlayingOrWillChangePlaymode = false;
             UnityEngine.SceneManagement.SceneManager.Scenes = [new() { isDirty = true, path = "Assets/Unsaved.unity" }];
+            Stop(token);
             EditorApplication.Advance();
             string sceneRefusal = Refusal();
             UnityEngine.SceneManagement.SceneManager.Scenes = [];
+            EditorApplication.Advance();
+            EditorApplication.MainWindowAvailable = false;
+            Stop(token);
+            EditorApplication.Advance();
+            string windowRefusal = Refusal();
+            EditorApplication.MainWindowAvailable = true;
+            EditorApplication.VetoQuit = true;
+            Stop(token);
+            EditorApplication.Advance();
+            EditorApplication.VetoQuit = false;
+            EditorApplication.Advance();
             int quitCallsBeforeStop = externalQuitCalls;
+            Stop(token);
             EditorApplication.Advance(); Capture();
             Console.WriteLine(JsonSerializer.Serialize(new
             {
@@ -67,19 +81,20 @@ namespace Splinter.UnityBridgeHarness
                 heartbeats = observations,
                 externalLookups, externalQuitCalls, quitCallsBeforeStop,
                 exited = EditorApplication.Exited, wrongTokenBlocked, compilingBlocked, importingBlocked,
-                playRefusal, sceneRefusal
+                playRefusal, sceneRefusal, windowRefusal, closeRequests = EditorApplication.CloseRequests
             }));
 
             void Stop(string requestToken)
             {
+                requestNumber++;
                 File.WriteAllText(Path.Combine(control, "stop-request.json"),
-                    JsonSerializer.Serialize(new { requestId = "test-stop", token = requestToken }));
+                    JsonSerializer.Serialize(new { requestId = "stop-" + requestNumber, token = requestToken }));
                 if (requestToken != token) EditorApplication.Advance();
             }
             string Refusal()
             {
                 using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(control, "stop-result.json")));
-                if (document.RootElement.GetProperty("requestId").GetString() != "test-stop")
+                if (document.RootElement.GetProperty("requestId").GetString() != "stop-" + requestNumber)
                     throw new InvalidOperationException("Stop refusal lost request identity.");
                 return document.RootElement.GetProperty("error").GetString();
             }

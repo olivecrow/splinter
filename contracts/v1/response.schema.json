@@ -2157,6 +2157,11 @@
         "rootRunning": {
           "type": "boolean"
         },
+        "rootExitCode": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
         "activeProcesses": {
           "type": "integer",
           "minimum": 0

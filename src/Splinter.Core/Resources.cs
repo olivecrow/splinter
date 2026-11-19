@@ -5,11 +5,11 @@ namespace Splinter.Core;
 public sealed record ProcessGroupLease(string Name, int SupervisorId, long SupervisorStartTimeUtcTicks, string? ControlPath = null);
 public sealed record ProcessLaunch(string Executable, string[] Arguments, string WorkingDirectory, string Token);
 public sealed record ProcessResources(bool OwnershipVerified, bool RootRunning, int ActiveProcesses,
-    long WorkingSetBytes, long PrivateBytes);
+    long WorkingSetBytes, long PrivateBytes, int? RootExitCode = null);
 
 public interface IProcessWorkspaceProvider
 {
     Task<ApplicationLease> StartAsync(ProcessLaunch launch, string controlPath, CancellationToken cancellationToken = default);
     Task<ProcessResources> ObserveAsync(ApplicationLease lease, CancellationToken cancellationToken = default);
-    Task WaitForExitAsync(ApplicationLease lease, CancellationToken cancellationToken = default);
+    Task<int> WaitForExitAsync(ApplicationLease lease, CancellationToken cancellationToken = default);
 }

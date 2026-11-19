@@ -14,6 +14,27 @@ public sealed class WindowsInheritedHandleCollection;
 [Collection("Windows inherited-handle observation")]
 public sealed class WindowsProcessTests
 {
+    [Theory]
+    [InlineData("{\"token\":\"lease\",\"activeJobProcesses\":0}")]
+    [InlineData("{\"token\":\"lease\",\"rootExitCode\":0}")]
+    [InlineData("{\"token\":\"previous\",\"activeJobProcesses\":0,\"rootExitCode\":0}")]
+    [InlineData("{\"token\":\"lease\",\"activeJobProcesses\":1,\"rootExitCode\":0}")]
+    public async Task UnprovenExitReceiptCannotAuthorizeCleanup(string json)
+    {
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows process ownership.");
+        using var d = new TestDirectory();
+        var ct = TestContext.Current.CancellationToken;
+        var group = new ProcessGroupLease("Local\\Splinter." + Guid.NewGuid().ToString("N"), int.MaxValue, 1, d.Path);
+        var lease = new ApplicationLease(int.MaxValue, 1, "lease", "closed", group);
+        await File.WriteAllTextAsync(Path.Combine(d.Path, "process-exit.json"), json, ct);
+        var provider = new WindowsProcessWorkspaceProvider();
+        var observed = await provider.ObserveAsync(lease, ct);
+        Assert.False(observed.OwnershipVerified);
+        Assert.Null(observed.RootExitCode);
+        var error = await Assert.ThrowsAsync<WorkspaceException>(() => provider.WaitForExitAsync(lease, ct));
+        Assert.Equal("ProcessOwnershipUnknown", error.Code);
+    }
+
     [Fact]
     public async Task SupervisorSurvivesClientAndCleansDescendantThatOutlivesRoot()
     {
@@ -53,9 +74,9 @@ public sealed class WindowsProcessTests
             int childPid = int.Parse((await File.ReadAllTextAsync(pidPath, ct)).Trim());
             using var ownedChild = Process.GetProcessById(childPid);
             await File.WriteAllTextAsync(Path.Combine(d.Path, "exit"), "stop", ct);
-            await reconnected.WaitForExitAsync(lease, ct);
+            Assert.Equal(0, await reconnected.WaitForExitAsync(lease, ct));
             Assert.True(ownedChild.HasExited); Assert.False(sentinel.HasExited);
-            Assert.Equal(new ProcessResources(true, false, 0, 0, 0), await reconnected.ObserveAsync(lease, ct));
+            Assert.Equal(new ProcessResources(true, false, 0, 0, 0, 0), await reconnected.ObserveAsync(lease, ct));
             using var proof = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(d.Path, "process-exit.json"), ct));
             Assert.Equal(0, proof.RootElement.GetProperty("activeJobProcesses").GetInt32());
         }

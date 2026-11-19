@@ -146,7 +146,12 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
             return new(false, false, uncertain ? "launch-uncertain" : "not-started", Resources: new(!uncertain, false, 0, 0, 0));
         }
         var resources = processes is null ? new ProcessResources(false, OwnedProcess(lease), 0, 0, 0) : await processes.ObserveAsync(lease, ct);
-        if (!OwnedProcess(lease)) return new(false, false, resources.ActiveProcesses > 0 ? "draining" : "exited", lease, Resources: resources);
+        if (!OwnedProcess(lease))
+        {
+            string phase = resources.ActiveProcesses > 0 ? "draining" :
+                resources.RootExitCode is not null and not 0 ? "exited-abnormally" : "exited";
+            return new(false, false, phase, lease, Resources: resources);
+        }
         var heartbeat = await Read<Heartbeat>(controlPath, "heartbeat.json", ct);
         bool valid = heartbeat is not null && heartbeat.Token == lease.Token && heartbeat.Pid == lease.ProcessId &&
             heartbeat.StartTimeUtcTicks == lease.StartTimeUtcTicks && SamePath(heartbeat.ProjectPath, workspace.Path) &&
@@ -172,7 +177,11 @@ public sealed class UnityWorkspaceProvider(IProcessWorkspaceProvider? processes 
             var refusal = await Read<StopResult>(controlPath, "stop-result.json", token);
             return refusal?.RequestId == requestId ? refusal.Error : null;
         }, TimeProvider.System, Task.Delay, ct);
-        await Processes.WaitForExitAsync(lease, ct);
+        int exitCode = await Processes.WaitForExitAsync(lease, ct);
+        if (exitCode != 0)
+            throw new WorkspaceException("EditorExitedAbnormally",
+                $"The owned Editor exited with 0x{unchecked((uint)exitCode):X8} during shutdown. Inspect its log and saved data before continuing.",
+                new { rootExitCode = exitCode });
     }
 
     internal static async Task WaitForNormalExitAsync(Func<bool> ownedProcess,

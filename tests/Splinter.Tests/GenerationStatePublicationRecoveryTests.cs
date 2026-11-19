@@ -1,11 +1,74 @@
 using System.Text.Json;
+using Splinter.Application.Unity;
+using Splinter.Cli;
 using Splinter.Core;
 using Splinter.Platform.Windows;
+using Splinter.Protocol;
 
 namespace Splinter.Tests;
 
 public sealed partial class FileWorkspaceTests
 {
+    [Fact]
+    public async Task AbnormalEditorStopPreservesTheCheckpointUntilExplicitFinalRecovery()
+    {
+        RequireWindowsApply();
+        var ct = TestContext.Current.CancellationToken;
+        const int accessViolation = unchecked((int)0xC0000005);
+        var processes = new WindowsProcessWorkspaceProvider();
+        var unity = new UnityWorkspaceProvider(processes);
+        using var f = new Fixture(new WindowsOriginalFilePublisher(), application: unity, policies: UnityProjectPolicy.Policies);
+        string settings = Directory.CreateDirectory(Path.Combine(f.Project, "ProjectSettings")).FullName;
+        await File.WriteAllTextAsync(Path.Combine(settings, "ProjectVersion.txt"), "m_EditorVersion: 6000.6.8f1", ct);
+        var w = (await f.Ensure("abnormal-stop", ct, "unity")).Workspace;
+        await File.WriteAllTextAsync(Path.Combine(w.Path, "data.txt"), "verified bytes", ct);
+        var previous = (await f.New().CheckpointAsync(w.Id, "verified", "before-stop", ct)).ResultGeneration!;
+        string control = f.Store.ControlPath(w.Id);
+        string shell = Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe");
+        string script = Path.Combine(control, "wait-for-stop.ps1");
+        await File.WriteAllTextAsync(script, $$"""
+            $clock = [Diagnostics.Stopwatch]::StartNew()
+            while ($clock.Elapsed.TotalSeconds -lt 25) {
+                if (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'stop-request.json')) { exit {{accessViolation}} }
+                if (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'finish-test')) { exit 0 }
+                Start-Sleep -Milliseconds 50
+            }
+            exit 24
+            """, ct);
+        var lease = await processes.StartAsync(new(shell, ["-NoProfile", "-File", script], w.Path,
+            Guid.NewGuid().ToString("N")), control, ct);
+        try
+        {
+            var error = await Assert.ThrowsAsync<WorkspaceException>(() =>
+                f.New().CheckpointAndReleaseAsync(w.Id, "final", "final-stop", ct));
+            Assert.Equal("EditorExitedAbnormally", error.Code);
+            Assert.Contains("0xC0000005", error.Message);
+            Assert.Equal(accessViolation, JsonSerializer.SerializeToElement(error.Details).GetProperty("rootExitCode").GetInt32());
+            Assert.Equal("requires-user-action", WorkspaceFailurePolicy.RetryDisposition(error.Code));
+            var stopped = await unity.ObserveAsync(w, control, ct);
+            Assert.Equal("exited-abnormally", stopped.Phase);
+            Assert.Equal(new ProcessResources(true, false, 0, 0, 0, accessViolation), stopped.Resources);
+            Assert.Contains(w.Id, f.Backend.Mounted); Assert.Empty(f.Backend.Removed);
+            Assert.Equal(previous.Id, Assert.Single(f.Store.Get(w.Id).Results).Id);
+            Assert.Equal("verified bytes", await File.ReadAllTextAsync(Path.Combine(w.Path, "data.txt"), ct));
+            string request = await File.ReadAllTextAsync(Path.Combine(control, "stop-request.json"), ct);
+
+            var recovered = await f.New().CheckpointAndReleaseAsync(w.Id, "final", "final-stop", ct);
+            Assert.Equal("released", recovered.Workspace.Phase);
+            Assert.Equal(accessViolation, recovered.Workspace.ReleasedResources!.RootExitCode);
+            Assert.Contains(recovered.Workspace.Results, generation => generation.Id == previous.Id);
+            Assert.Equal(request, await File.ReadAllTextAsync(Path.Combine(control, "stop-request.json"), ct));
+            var response = WorkspaceCommands.Result("workspace.checkpoint", recovered, false, f.Store.Root);
+            var json = JsonSerializer.SerializeToElement(response, ApiJson.Options);
+            Assert.True(new ContractCatalog().Validate("urn:splinter:v1:response", json).IsValid, json.GetRawText());
+        }
+        finally
+        {
+            await File.WriteAllTextAsync(Path.Combine(control, "finish-test"), "", CancellationToken.None);
+            await processes.WaitForExitAsync(lease, CancellationToken.None);
+        }
+    }
+
     [Theory]
     [InlineData(false)] [InlineData(true)]
     public async Task GenerationStatePublicationFailureRecoversTheFixedResultBeforeOrAfterAtomicStatePublication(bool failEventAppend)

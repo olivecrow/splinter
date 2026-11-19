@@ -28,7 +28,7 @@ public static class WorkspaceFailurePolicy
     {
         "SourceCaptureUncertain" or "GitInspectionTimeout" or "Cancelled" or "WorkspaceBusy" or "EditorNotReady" or "SourceObservationUncertain" or "SourceChanged" or "ViewResourcesBusy" or "CandidatePublicationBusy" => "safe-to-retry",
         "WorkspaceDiscardUnavailable" or "WorkspaceDiscarding" or "DiscardOwnershipUnknown" or
-        "GitBasisUnavailable" or "ProcessOwnershipUnknown" or "SnapshotHeadroomRequired" or "WinFspMissing" or "SnapshotMissing" or "OverlayResultRequired" or
+        "GitBasisUnavailable" or "ProcessOwnershipUnknown" or "EditorExitedAbnormally" or "SnapshotHeadroomRequired" or "WinFspMissing" or "SnapshotMissing" or "OverlayResultRequired" or
         "OverlayStartUncertain" or "SnapshotStateMissing" or "SnapshotCheckpointMismatch" or "SnapshotPreparationIncomplete" or "SnapshotOperationIncomplete" or
         "SnapshotObservationUnknown" or "StateRecoveryRequired" or "StateReadUnavailable" or "StateWriteIncomplete" or
         "DeltaCorrupt" or "DeltaReconnectRequired" or "OverlayIdentityMissing" or "OverlayIdentityMismatch" or "SnapshotIdentityMismatch" or
